@@ -1,0 +1,20 @@
+{
+  email contato@olhopublico.org
+}
+
+# Postgres exposto via TLS para Vercel — IP allow-list configurada no firewall do provedor
+postgres.olhopublico.org:5433 {
+  reverse_proxy postgres:5432 {
+    transport http {
+      versions h2c
+    }
+  }
+}
+
+# Painel Dagster (futuro), proteção via basic auth
+dagster.olhopublico.org {
+  basic_auth {
+    admin {{ DAGSTER_PASSWORD_HASH }}
+  }
+  reverse_proxy dagster:3000
+}
