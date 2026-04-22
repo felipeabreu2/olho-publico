@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 CoberturaPrefeitura = Literal["nenhuma", "parcial", "completa"]
+
+
+def _now_utc() -> datetime:
+    return datetime.now(UTC)
 
 
 class Municipio(BaseModel):
@@ -18,4 +22,4 @@ class Municipio(BaseModel):
     prefeito_partido: str | None = None
     cobertura_prefeitura: CoberturaPrefeitura = "nenhuma"
     erp_detectado: str | None = None
-    atualizado_em: datetime = Field(default_factory=datetime.utcnow)
+    atualizado_em: datetime = Field(default_factory=_now_utc)

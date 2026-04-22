@@ -1,6 +1,10 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, Field
+
+
+def _now_utc() -> datetime:
+    return datetime.now(UTC)
 
 
 class Empresa(BaseModel):
@@ -12,7 +16,7 @@ class Empresa(BaseModel):
     cnae_principal: str | None = None
     municipio_sede_id: str | None = None
     flags: dict[str, bool] = Field(default_factory=dict)
-    atualizado_em: datetime = Field(default_factory=datetime.utcnow)
+    atualizado_em: datetime = Field(default_factory=_now_utc)
 
 
 class Socio(BaseModel):

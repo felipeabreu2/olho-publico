@@ -1,0 +1,1175 @@
+{
+  "id": "75e3ae86-3dcd-4c11-bbb1-5a3c1465298d",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.municipios": {
+      "name": "municipios",
+      "schema": "",
+      "columns": {
+        "id_ibge": {
+          "name": "id_ibge",
+          "type": "varchar(7)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uf": {
+          "name": "uf",
+          "type": "varchar(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "populacao": {
+          "name": "populacao",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idh": {
+          "name": "idh",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "geometria": {
+          "name": "geometria",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prefeito_nome": {
+          "name": "prefeito_nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prefeito_partido": {
+          "name": "prefeito_partido",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cobertura_prefeitura": {
+          "name": "cobertura_prefeitura",
+          "type": "cobertura_prefeitura",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nenhuma'"
+        },
+        "erp_detectado": {
+          "name": "erp_detectado",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_municipios_uf": {
+          "name": "idx_municipios_uf",
+          "columns": [
+            {
+              "expression": "uf",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_municipios_nome_trgm": {
+          "name": "idx_municipios_nome_trgm",
+          "columns": [
+            {
+              "expression": "nome",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "municipios_slug_unique": {
+          "name": "municipios_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.empresas": {
+      "name": "empresas",
+      "schema": "",
+      "columns": {
+        "cnpj": {
+          "name": "cnpj",
+          "type": "varchar(14)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "razao_social": {
+          "name": "razao_social",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome_fantasia": {
+          "name": "nome_fantasia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_abertura": {
+          "name": "data_abertura",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "situacao": {
+          "name": "situacao",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cnae_principal": {
+          "name": "cnae_principal",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "municipio_sede_id": {
+          "name": "municipio_sede_id",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flags": {
+          "name": "flags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_empresas_razao_social_trgm": {
+          "name": "idx_empresas_razao_social_trgm",
+          "columns": [
+            {
+              "expression": "razao_social",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "idx_empresas_flags": {
+          "name": "idx_empresas_flags",
+          "columns": [
+            {
+              "expression": "flags",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "idx_empresas_sede": {
+          "name": "idx_empresas_sede",
+          "columns": [
+            {
+              "expression": "municipio_sede_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "empresas_municipio_sede_id_municipios_id_ibge_fk": {
+          "name": "empresas_municipio_sede_id_municipios_id_ibge_fk",
+          "tableFrom": "empresas",
+          "tableTo": "municipios",
+          "columnsFrom": [
+            "municipio_sede_id"
+          ],
+          "columnsTo": [
+            "id_ibge"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.socios": {
+      "name": "socios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cnpj": {
+          "name": "cnpj",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cpf_mascarado": {
+          "name": "cpf_mascarado",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_entrada": {
+          "name": "data_entrada",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_socios_cnpj": {
+          "name": "idx_socios_cnpj",
+          "columns": [
+            {
+              "expression": "cnpj",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_socios_nome_trgm": {
+          "name": "idx_socios_nome_trgm",
+          "columns": [
+            {
+              "expression": "nome",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "socios_cnpj_empresas_cnpj_fk": {
+          "name": "socios_cnpj_empresas_cnpj_fk",
+          "tableFrom": "socios",
+          "tableTo": "empresas",
+          "columnsFrom": [
+            "cnpj"
+          ],
+          "columnsTo": [
+            "cnpj"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contratos": {
+      "name": "contratos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "municipio_aplicacao_id": {
+          "name": "municipio_aplicacao_id",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cnpj_fornecedor": {
+          "name": "cnpj_fornecedor",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orgao_contratante": {
+          "name": "orgao_contratante",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "objeto": {
+          "name": "objeto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_assinatura": {
+          "name": "data_assinatura",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modalidade_licitacao": {
+          "name": "modalidade_licitacao",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fonte": {
+          "name": "fonte",
+          "type": "fonte_contrato",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dados_originais_url": {
+          "name": "dados_originais_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_contratos_municipio_data": {
+          "name": "idx_contratos_municipio_data",
+          "columns": [
+            {
+              "expression": "municipio_aplicacao_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "data_assinatura",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_contratos_fornecedor": {
+          "name": "idx_contratos_fornecedor",
+          "columns": [
+            {
+              "expression": "cnpj_fornecedor",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_contratos_objeto_fts": {
+          "name": "idx_contratos_objeto_fts",
+          "columns": [
+            {
+              "expression": "objeto",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "contratos_municipio_aplicacao_id_municipios_id_ibge_fk": {
+          "name": "contratos_municipio_aplicacao_id_municipios_id_ibge_fk",
+          "tableFrom": "contratos",
+          "tableTo": "municipios",
+          "columnsFrom": [
+            "municipio_aplicacao_id"
+          ],
+          "columnsTo": [
+            "id_ibge"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contratos_cnpj_fornecedor_empresas_cnpj_fk": {
+          "name": "contratos_cnpj_fornecedor_empresas_cnpj_fk",
+          "tableFrom": "contratos",
+          "tableTo": "empresas",
+          "columnsFrom": [
+            "cnpj_fornecedor"
+          ],
+          "columnsTo": [
+            "cnpj"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sancoes": {
+      "name": "sancoes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cnpj": {
+          "name": "cnpj",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_sancao": {
+          "name": "tipo_sancao",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orgao_sancionador": {
+          "name": "orgao_sancionador",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_inicio": {
+          "name": "data_inicio",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_fim": {
+          "name": "data_fim",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motivo": {
+          "name": "motivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fonte_url": {
+          "name": "fonte_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_sancoes_cnpj": {
+          "name": "idx_sancoes_cnpj",
+          "columns": [
+            {
+              "expression": "cnpj",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sancoes_cnpj_empresas_cnpj_fk": {
+          "name": "sancoes_cnpj_empresas_cnpj_fk",
+          "tableFrom": "sancoes",
+          "tableTo": "empresas",
+          "columnsFrom": [
+            "cnpj"
+          ],
+          "columnsTo": [
+            "cnpj"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.doacoes": {
+      "name": "doacoes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cnpj_doador": {
+          "name": "cnpj_doador",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpf_doador_mascarado": {
+          "name": "cpf_doador_mascarado",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "candidato_nome": {
+          "name": "candidato_nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "candidato_cargo": {
+          "name": "candidato_cargo",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "partido": {
+          "name": "partido",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valor": {
+          "name": "valor",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ano_eleicao": {
+          "name": "ano_eleicao",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "municipio_id": {
+          "name": "municipio_id",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_doacoes_cnpj": {
+          "name": "idx_doacoes_cnpj",
+          "columns": [
+            {
+              "expression": "cnpj_doador",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_doacoes_candidato": {
+          "name": "idx_doacoes_candidato",
+          "columns": [
+            {
+              "expression": "candidato_nome",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_doacoes_municipio_ano": {
+          "name": "idx_doacoes_municipio_ano",
+          "columns": [
+            {
+              "expression": "municipio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano_eleicao",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "doacoes_municipio_id_municipios_id_ibge_fk": {
+          "name": "doacoes_municipio_id_municipios_id_ibge_fk",
+          "tableFrom": "doacoes",
+          "tableTo": "municipios",
+          "columnsFrom": [
+            "municipio_id"
+          ],
+          "columnsTo": [
+            "id_ibge"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agregacoes_municipio": {
+      "name": "agregacoes_municipio",
+      "schema": "",
+      "columns": {
+        "municipio_id": {
+          "name": "municipio_id",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ano_referencia": {
+          "name": "ano_referencia",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_contratos_federais": {
+          "name": "total_contratos_federais",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "total_contratos_prefeitura": {
+          "name": "total_contratos_prefeitura",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "qtd_contratos_federais": {
+          "name": "qtd_contratos_federais",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "qtd_contratos_prefeitura": {
+          "name": "qtd_contratos_prefeitura",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "top_fornecedores": {
+          "name": "top_fornecedores",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "gastos_por_area": {
+          "name": "gastos_por_area",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "comparacao_similares": {
+          "name": "comparacao_similares",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agregacoes_municipio_municipio_id_municipios_id_ibge_fk": {
+          "name": "agregacoes_municipio_municipio_id_municipios_id_ibge_fk",
+          "tableFrom": "agregacoes_municipio",
+          "tableTo": "municipios",
+          "columnsFrom": [
+            "municipio_id"
+          ],
+          "columnsTo": [
+            "id_ibge"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "agregacoes_municipio_municipio_id_ano_referencia_pk": {
+          "name": "agregacoes_municipio_municipio_id_ano_referencia_pk",
+          "columns": [
+            "municipio_id",
+            "ano_referencia"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.regras_alerta": {
+      "name": "regras_alerta",
+      "schema": "",
+      "columns": {
+        "codigo": {
+          "name": "codigo",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versao_atual": {
+          "name": "versao_atual",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parametros": {
+          "name": "parametros",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "disclaimer_text": {
+          "name": "disclaimer_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criada_em": {
+          "name": "criada_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizada_em": {
+          "name": "atualizada_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.alertas": {
+      "name": "alertas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severidade": {
+          "name": "severidade",
+          "type": "severidade_alerta",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "municipio_id": {
+          "name": "municipio_id",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cnpj_envolvido": {
+          "name": "cnpj_envolvido",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evidencia": {
+          "name": "evidencia",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_deteccao": {
+          "name": "data_deteccao",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "regra_versao": {
+          "name": "regra_versao",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_alertas_municipio_data": {
+          "name": "idx_alertas_municipio_data",
+          "columns": [
+            {
+              "expression": "municipio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "data_deteccao",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_alertas_cnpj": {
+          "name": "idx_alertas_cnpj",
+          "columns": [
+            {
+              "expression": "cnpj_envolvido",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "alertas_tipo_regras_alerta_codigo_fk": {
+          "name": "alertas_tipo_regras_alerta_codigo_fk",
+          "tableFrom": "alertas",
+          "tableTo": "regras_alerta",
+          "columnsFrom": [
+            "tipo"
+          ],
+          "columnsTo": [
+            "codigo"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "alertas_municipio_id_municipios_id_ibge_fk": {
+          "name": "alertas_municipio_id_municipios_id_ibge_fk",
+          "tableFrom": "alertas",
+          "tableTo": "municipios",
+          "columnsFrom": [
+            "municipio_id"
+          ],
+          "columnsTo": [
+            "id_ibge"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "alertas_cnpj_envolvido_empresas_cnpj_fk": {
+          "name": "alertas_cnpj_envolvido_empresas_cnpj_fk",
+          "tableFrom": "alertas",
+          "tableTo": "empresas",
+          "columnsFrom": [
+            "cnpj_envolvido"
+          ],
+          "columnsTo": [
+            "cnpj"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contestacoes": {
+      "name": "contestacoes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tipo_alvo": {
+          "name": "tipo_alvo",
+          "type": "tipo_alvo_contestacao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_alvo": {
+          "name": "id_alvo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_solicitante": {
+          "name": "email_solicitante",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mensagem": {
+          "name": "mensagem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "status_contestacao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pendente'"
+        },
+        "resposta": {
+          "name": "resposta",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_solicitacao": {
+          "name": "data_solicitacao",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "data_resposta": {
+          "name": "data_resposta",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.cobertura_prefeitura": {
+      "name": "cobertura_prefeitura",
+      "schema": "public",
+      "values": [
+        "nenhuma",
+        "parcial",
+        "completa"
+      ]
+    },
+    "public.fonte_contrato": {
+      "name": "fonte_contrato",
+      "schema": "public",
+      "values": [
+        "portal_transparencia",
+        "compras_gov",
+        "prefeitura_el",
+        "prefeitura_ipm",
+        "prefeitura_betha",
+        "prefeitura_equiplano"
+      ]
+    },
+    "public.severidade_alerta": {
+      "name": "severidade_alerta",
+      "schema": "public",
+      "values": [
+        "info",
+        "atencao",
+        "forte"
+      ]
+    },
+    "public.status_contestacao": {
+      "name": "status_contestacao",
+      "schema": "public",
+      "values": [
+        "pendente",
+        "em_analise",
+        "respondida",
+        "arquivada"
+      ]
+    },
+    "public.tipo_alvo_contestacao": {
+      "name": "tipo_alvo_contestacao",
+      "schema": "public",
+      "values": [
+        "alerta",
+        "contrato",
+        "empresa",
+        "municipio"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
