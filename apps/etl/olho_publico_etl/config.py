@@ -45,8 +45,24 @@ class Settings(BaseSettings):
     # o VPS está fora do Brasil — CGU bloqueia IPs não-BR via CloudFront.
     transparencia_base_url: str = "https://api.portaldatransparencia.gov.br"
 
-    # Lista CSV de IDs IBGE para sync periódico (ex: "3550308,3304557")
-    ibge_sync_list: str = "3550308"
+    # Lista CSV de IDs IBGE para sync periódico. Default: 10 capitais brasileiras.
+    # Adicione mais cidades aqui ou via env var IBGE_SYNC_LIST no Portainer.
+    ibge_sync_list: str = (
+        "3550308,"  # São Paulo - SP
+        "3304557,"  # Rio de Janeiro - RJ
+        "5300108,"  # Brasília - DF
+        "2304400,"  # Fortaleza - CE
+        "2927408,"  # Salvador - BA
+        "3106200,"  # Belo Horizonte - MG
+        "1302603,"  # Manaus - AM
+        "4106902,"  # Curitiba - PR
+        "2611606,"  # Recife - PE
+        "5208707"   # Goiânia - GO
+    )
+
+    # Quantos meses de histórico sincronizar a cada ciclo. Padrão: 12.
+    # Mais alto = mais dados, mais demorado. Quase sempre 12 meses cobrem bem.
+    sync_meses_lookback: int = 12
 
     log_level: str = "INFO"
 

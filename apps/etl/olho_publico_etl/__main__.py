@@ -23,7 +23,9 @@ from olho_publico_etl.jobs.sync_programas_sociais import run_multiplas_cidades_s
 from olho_publico_etl.jobs.sync_renuncias import sync_renuncias_ultimos_anos
 from olho_publico_etl.jobs.sync_transferencias import run_multiplas_cidades
 
-JOB_INTERVAL_SECONDS = 6 * 3600  # 6h
+# Sync histórico de 12 meses × 10 cidades × 8 sources × paginação
+# leva tempo. 24h entre ciclos é confortável e respeita rate limits.
+JOB_INTERVAL_SECONDS = 24 * 3600  # 24h
 
 
 def _ts() -> str:
@@ -37,6 +39,19 @@ def _log(msg: str) -> None:
 def _ano_mes_corrente() -> str:
     now = datetime.now(UTC)
     return f"{now.year}-{now.month:02d}"
+
+
+def _ultimos_meses(n: int) -> list[str]:
+    """Retorna lista de YYYY-MM, do mais antigo ao mais recente.
+
+    Ex: _ultimos_meses(12) com hoje=2026-04 → ['2025-05', '2025-06', ..., '2026-04']
+    """
+    now = datetime.now(UTC)
+    base_total = now.year * 12 + now.month - 1
+    return [
+        f"{(base_total - i) // 12}-{((base_total - i) % 12 + 1):02d}"
+        for i in range(n - 1, -1, -1)
+    ]
 
 
 def _run_startup_jobs(settings: Settings) -> None:
@@ -55,26 +70,28 @@ def _run_periodic_jobs(settings: Settings) -> None:
         _log(f"jobs Transparencia pulados: {e}")
         return
     ibge_ids = [x.strip() for x in settings.ibge_sync_list.split(",") if x.strip()]
-    ano_mes = _ano_mes_corrente()
+    meses_lookback = settings.sync_meses_lookback
 
-    # 1) Contratos (8 sources: convenios, transferencias, emendas, contratos,
-    #    licitacoes, empenhos, cartao, viagens)
-    try:
-        result = run_multiplas_cidades(settings, ibge_ids, ano_mes)
-        for ibge, n in result.items():
-            _log(f"sync contratos-like {ibge} {ano_mes} — {n} contratos totais")
-    except Exception as e:  # noqa: BLE001
-        _log(f"sync contratos-like FALHOU: {e}")
-        traceback.print_exc()
+    _log(f"sync histórico — últimos {meses_lookback} meses para {len(ibge_ids)} cidade(s)")
 
-    # 2) Programas sociais (bolsa familia, aux brasil, defeso)
-    try:
-        result = run_multiplas_cidades_sociais(settings, ibge_ids, ano_mes)
-        for ibge, n in result.items():
-            _log(f"sync programas sociais {ibge} {ano_mes} — {n} registros")
-    except Exception as e:  # noqa: BLE001
-        _log(f"sync programas sociais FALHOU: {e}")
-        traceback.print_exc()
+    for ano_mes in _ultimos_meses(meses_lookback):
+        # 1) Contratos federais (4 sources fail-soft)
+        try:
+            result = run_multiplas_cidades(settings, ibge_ids, ano_mes)
+            total = sum(result.values())
+            _log(f"sync contratos {ano_mes} — {total} novos registros (cidades: {len(result)})")
+        except Exception as e:  # noqa: BLE001
+            _log(f"sync contratos {ano_mes} FALHOU: {e}")
+            traceback.print_exc()
+
+        # 2) Programas sociais
+        try:
+            result = run_multiplas_cidades_sociais(settings, ibge_ids, ano_mes)
+            total = sum(result.values())
+            _log(f"sync sociais {ano_mes} — {total} registros")
+        except Exception as e:  # noqa: BLE001
+            _log(f"sync sociais {ano_mes} FALHOU: {e}")
+            traceback.print_exc()
 
     # 3) Compliance (CEIS, CNEP, PEP — datasets nacionais, sync completo)
     try:
