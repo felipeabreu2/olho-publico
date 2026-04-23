@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     # Mais alto = mais dados, mais demorado. Quase sempre 12 meses cobrem bem.
     sync_meses_lookback: int = 12
 
+    # Quando True, ignora ibge_sync_list e sincroniza TODAS as ~5570 cidades
+    # do Brasil (consulta tabela municipios). Cuidado: aumenta drasticamente
+    # tempo de ciclo, uso de rate limit e volume de dados.
+    sync_todas_cidades: bool = False
+
     log_level: str = "INFO"
 
 

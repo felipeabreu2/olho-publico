@@ -15,6 +15,8 @@ import time
 import traceback
 from datetime import UTC, datetime
 
+import psycopg
+
 from olho_publico_etl import __version__
 from olho_publico_etl.config import Settings, get_settings, require_settings
 from olho_publico_etl.jobs.sync_compliance import sync_compliance
@@ -63,13 +65,31 @@ def _run_startup_jobs(settings: Settings) -> None:
         traceback.print_exc()
 
 
+def _ibge_ids_todas_cidades(settings: Settings) -> list[str]:
+    """Consulta tabela municipios e retorna todos os id_ibge cadastrados."""
+    with psycopg.connect(settings.db_conninfo()) as conn, conn.cursor() as cur:
+        cur.execute("SELECT id_ibge FROM municipios ORDER BY id_ibge")
+        return [row[0] for row in cur.fetchall()]
+
+
+def _resolve_ibge_ids(settings: Settings) -> list[str]:
+    if settings.sync_todas_cidades:
+        ids = _ibge_ids_todas_cidades(settings)
+        _log(
+            f"⚠️  SYNC_TODAS_CIDADES=true — sincronizando {len(ids)} cidades. "
+            f"Ciclo levará MUITO mais tempo e consumirá rate limit pesadamente."
+        )
+        return ids
+    return [x.strip() for x in settings.ibge_sync_list.split(",") if x.strip()]
+
+
 def _run_periodic_jobs(settings: Settings) -> None:
     try:
         require_settings("transparencia_api_key")
     except RuntimeError as e:
         _log(f"jobs Transparencia pulados: {e}")
         return
-    ibge_ids = [x.strip() for x in settings.ibge_sync_list.split(",") if x.strip()]
+    ibge_ids = _resolve_ibge_ids(settings)
     meses_lookback = settings.sync_meses_lookback
 
     _log(f"sync histórico — últimos {meses_lookback} meses para {len(ibge_ids)} cidade(s)")
