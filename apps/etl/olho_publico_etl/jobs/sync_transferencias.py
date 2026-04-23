@@ -7,8 +7,10 @@ em um endpoint específico.
 from __future__ import annotations
 
 import asyncio
-import traceback
 
+import httpx
+
+from olho_publico_etl import _log
 from olho_publico_etl.config import Settings
 from olho_publico_etl.db import make_pool
 from olho_publico_etl.models import Contrato, Empresa
@@ -82,10 +84,15 @@ async def _collect_all(
     *,
     rate_per_minute: int,
     base_url: str,
-) -> tuple[list[Contrato], dict[str, int]]:
-    """Coleta de todas as sources em sequência. Retorna (contratos, contagem_por_source)."""
+) -> tuple[list[Contrato], dict[str, int], dict[str, str]]:
+    """Coleta de todas as sources em sequência.
+
+    Retorna (contratos, contagem_por_source, erros_por_source).
+    erros_por_source: rótulo curto (ex.: "403", "400", "ERR") para agregação.
+    """
     contratos: list[Contrato] = []
     contagem: dict[str, int] = {}
+    erros: dict[str, str] = {}
     async with TransparenciaClient(
         api_key=api_key, rate_per_minute=rate_per_minute, base_url=base_url
     ) as c:
@@ -94,17 +101,23 @@ async def _collect_all(
                 rows = await _collect_from_source(c, fetcher, codigo_ibge, ano_mes)
                 contratos.extend(rows)
                 contagem[nome] = len(rows)
-                print(f"[sync] {nome} {codigo_ibge} {ano_mes}: {len(rows)} registros", flush=True)
-            except Exception as e:  # noqa: BLE001
-                print(f"[sync] {nome} {codigo_ibge} {ano_mes} FALHOU: {e}", flush=True)
-                traceback.print_exc()
+            except httpx.HTTPStatusError as e:
                 contagem[nome] = 0
-    return contratos, contagem
+                erros[nome] = str(e.response.status_code)
+            except Exception as e:  # noqa: BLE001
+                contagem[nome] = 0
+                erros[nome] = type(e).__name__
+    return contratos, contagem, erros
 
 
-def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) -> int:
-    """Sincroniza um município/mês: fetch (4 fontes) → Bronze R2 → Gold Postgres → agregações."""
-    contratos, contagem = asyncio.run(
+def sync_transferencias_mes(
+    settings: Settings, codigo_ibge: str, ano_mes: str
+) -> tuple[int, dict[str, str]]:
+    """Sincroniza um município/mês: fetch → Bronze R2 → Gold Postgres → agregações.
+
+    Retorna (n_contratos_upsertados, erros_por_source).
+    """
+    contratos, _, erros = asyncio.run(
         _collect_all(
             settings.transparencia_api_key,
             codigo_ibge,
@@ -114,7 +127,7 @@ def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) 
         )
     )
     if not contratos:
-        return 0
+        return 0, erros
 
     # Bronze (R2) — somente se R2 configurado
     if settings.r2_account_id and settings.r2_access_key_id:
@@ -133,7 +146,7 @@ def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) 
                 content_type="application/parquet",
             )
         except Exception as e:  # noqa: BLE001
-            print(f"[sync] R2 upload falhou (continua sem bronze): {e}", flush=True)
+            _log.warn("sync", f"R2 upload falhou (segue sem bronze): {e}")
 
     # Gold (Postgres) — empresas mínimas + contratos + agregações
     empresas_min = [
@@ -151,13 +164,33 @@ def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) 
     finally:
         pool.close()
 
-    return n
+    return n, erros
 
 
 def run_multiplas_cidades(
     settings: Settings, ibge_ids: list[str], ano_mes: str
-) -> dict[str, int]:
-    """Sincroniza vários municípios sequencialmente."""
-    return {
-        ibge: sync_transferencias_mes(settings, ibge, ano_mes) for ibge in ibge_ids
-    }
+) -> tuple[dict[str, int], dict[str, int]]:
+    """Sincroniza vários municípios sequencialmente.
+
+    Retorna (contratos_por_cidade, erros_agregados_por_source).
+    erros_agregados: nome_source -> n_cidades_que_falharam.
+    Loga progresso a cada 100 cidades em listas grandes.
+    """
+    contratos_por_cidade: dict[str, int] = {}
+    erros_agg: dict[str, int] = {}
+    total = len(ibge_ids)
+    log_every = 100 if total > 200 else max(total // 5, 1)
+
+    for i, ibge in enumerate(ibge_ids, start=1):
+        n, erros = sync_transferencias_mes(settings, ibge, ano_mes)
+        contratos_por_cidade[ibge] = n
+        for src in erros:
+            erros_agg[src] = erros_agg.get(src, 0) + 1
+        if total > 50 and i % log_every == 0:
+            parcial = sum(contratos_por_cidade.values())
+            _log.info(
+                "sync",
+                f"{ano_mes} progresso {i}/{total} cidades — {parcial} contratos até agora",
+            )
+
+    return contratos_por_cidade, erros_agg

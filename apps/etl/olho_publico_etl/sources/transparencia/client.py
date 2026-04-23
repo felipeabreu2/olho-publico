@@ -74,19 +74,8 @@ class TransparenciaClient:
             raise httpx.HTTPStatusError(
                 f"status={resp.status_code}", request=resp.request, response=resp
             )
-        if resp.status_code >= 400:
-            # Loga body e headers antes de levantar — ajuda diagnosticar 403/401/400
-            body = resp.text[:500]
-            hdrs = {
-                k: v
-                for k, v in resp.headers.items()
-                if k.lower() not in {"date", "server", "content-type", "connection"}
-            }
-            print(
-                f"[transparencia] {method} {path} params={kwargs.get('params')} "
-                f"-> {resp.status_code} headers={hdrs} body={body!r}",
-                flush=True,
-            )
+        # 4xx: silencioso aqui — o caller (sync_transferencias) agrega contagem
+        # por source. Diagnóstico detalhado fica em DEBUG (não printa por padrão).
         resp.raise_for_status()
         return resp
 

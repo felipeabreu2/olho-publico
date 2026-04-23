@@ -4,8 +4,8 @@ Roda jobs agendados em loop simples (P2). Dagster entra depois.
 
 Comportamento:
 - Ao iniciar: sync IBGE (idempotente, rápido)
-- A cada 6h: sync transferências para os IBGE_SYNC_LIST do mês atual
-- Loop dorme 6h entre execuções
+- A cada 24h: sync histórico de N meses para todas as cidades configuradas
+- Loop dorme 24h entre execuções
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 
 import psycopg
 
-from olho_publico_etl import __version__
+from olho_publico_etl import __version__, _log
 from olho_publico_etl.config import Settings, get_settings, require_settings
 from olho_publico_etl.jobs.sync_compliance import sync_compliance
 from olho_publico_etl.jobs.sync_ibge import run as run_sync_ibge
@@ -25,29 +25,10 @@ from olho_publico_etl.jobs.sync_programas_sociais import run_multiplas_cidades_s
 from olho_publico_etl.jobs.sync_renuncias import sync_renuncias_ultimos_anos
 from olho_publico_etl.jobs.sync_transferencias import run_multiplas_cidades
 
-# Sync histórico de 12 meses × 10 cidades × 8 sources × paginação
-# leva tempo. 24h entre ciclos é confortável e respeita rate limits.
-JOB_INTERVAL_SECONDS = 24 * 3600  # 24h
-
-
-def _ts() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _log(msg: str) -> None:
-    print(f"[{_ts()}] [olho-publico-etl] {msg}", flush=True)
-
-
-def _ano_mes_corrente() -> str:
-    now = datetime.now(UTC)
-    return f"{now.year}-{now.month:02d}"
+JOB_INTERVAL_SECONDS = 24 * 3600
 
 
 def _ultimos_meses(n: int) -> list[str]:
-    """Retorna lista de YYYY-MM, do mais antigo ao mais recente.
-
-    Ex: _ultimos_meses(12) com hoje=2026-04 → ['2025-05', '2025-06', ..., '2026-04']
-    """
     now = datetime.now(UTC)
     base_total = now.year * 12 + now.month - 1
     return [
@@ -56,17 +37,24 @@ def _ultimos_meses(n: int) -> list[str]:
     ]
 
 
+def _fmt_erros(erros: dict[str, int], total_cidades: int) -> str:
+    """Formata erros agregados: 'transferencias=403×5570 empenhos=403×5570'."""
+    if not erros:
+        return ""
+    partes = [f"{src}×{n}/{total_cidades}" for src, n in sorted(erros.items())]
+    return " falhas: " + " ".join(partes)
+
+
 def _run_startup_jobs(settings: Settings) -> None:
     try:
         n = run_sync_ibge(settings.db_conninfo())
-        _log(f"sync_ibge OK — {n} municipios upsertados")
+        _log.ok("ibge", f"{n} municipios upsertados")
     except Exception as e:  # noqa: BLE001
-        _log(f"sync_ibge FALHOU: {e}")
+        _log.error("ibge", f"FALHOU: {e}")
         traceback.print_exc()
 
 
 def _ibge_ids_todas_cidades(settings: Settings) -> list[str]:
-    """Consulta tabela municipios e retorna todos os id_ibge cadastrados."""
     with psycopg.connect(settings.db_conninfo()) as conn, conn.cursor() as cur:
         cur.execute("SELECT id_ibge FROM municipios ORDER BY id_ibge")
         return [row[0] for row in cur.fetchall()]
@@ -75,83 +63,97 @@ def _ibge_ids_todas_cidades(settings: Settings) -> list[str]:
 def _resolve_ibge_ids(settings: Settings) -> list[str]:
     if settings.sync_todas_cidades:
         ids = _ibge_ids_todas_cidades(settings)
-        _log(
-            f"⚠️  SYNC_TODAS_CIDADES=true — sincronizando {len(ids)} cidades. "
-            f"Ciclo levará MUITO mais tempo e consumirá rate limit pesadamente."
+        _log.warn(
+            "sync",
+            f"SYNC_TODAS_CIDADES=true — {len(ids)} cidades. "
+            f"Ciclo levará MUITO mais tempo e consumirá rate limit pesadamente.",
         )
         return ids
-    return [x.strip() for x in settings.ibge_sync_list.split(",") if x.strip()]
+    ids = [x.strip() for x in settings.ibge_sync_list.split(",") if x.strip()]
+    _log.info("sync", f"IBGE_SYNC_LIST — {len(ids)} cidade(s)")
+    return ids
 
 
 def _run_periodic_jobs(settings: Settings) -> None:
     try:
         require_settings("transparencia_api_key")
     except RuntimeError as e:
-        _log(f"jobs Transparencia pulados: {e}")
+        _log.warn("sync", f"jobs Transparencia pulados: {e}")
         return
+
     ibge_ids = _resolve_ibge_ids(settings)
     meses_lookback = settings.sync_meses_lookback
+    n_cidades = len(ibge_ids)
 
-    _log(f"sync histórico — últimos {meses_lookback} meses para {len(ibge_ids)} cidade(s)")
+    _log.section(f"Ciclo: últimos {meses_lookback} meses × {n_cidades} cidades")
 
     for ano_mes in _ultimos_meses(meses_lookback):
-        # 1) Contratos federais (4 sources fail-soft)
+        # 1) Contratos federais (multi-source fail-soft)
         try:
-            result = run_multiplas_cidades(settings, ibge_ids, ano_mes)
-            total = sum(result.values())
-            _log(f"sync contratos {ano_mes} — {total} novos registros (cidades: {len(result)})")
+            por_cidade, erros = run_multiplas_cidades(settings, ibge_ids, ano_mes)
+            total = sum(por_cidade.values())
+            _log.ok(
+                "contratos",
+                f"{ano_mes} → {total} novos registros em {n_cidades} cidade(s)"
+                + _fmt_erros(erros, n_cidades),
+            )
         except Exception as e:  # noqa: BLE001
-            _log(f"sync contratos {ano_mes} FALHOU: {e}")
+            _log.error("contratos", f"{ano_mes} FALHOU: {e}")
             traceback.print_exc()
 
         # 2) Programas sociais
         try:
             result = run_multiplas_cidades_sociais(settings, ibge_ids, ano_mes)
             total = sum(result.values())
-            _log(f"sync sociais {ano_mes} — {total} registros")
+            _log.ok("sociais", f"{ano_mes} → {total} registros")
         except Exception as e:  # noqa: BLE001
-            _log(f"sync sociais {ano_mes} FALHOU: {e}")
+            _log.error("sociais", f"{ano_mes} FALHOU: {e}")
             traceback.print_exc()
 
-    # 3) Compliance (CEIS, CNEP, PEP — datasets nacionais, sync completo)
+    # 3) Compliance (CEIS, CNEP, PEP — datasets nacionais)
     try:
-        result = sync_compliance(settings)
-        _log(
-            f"sync compliance — CEIS={result['ceis']} CNEP={result['cnep']} "
-            f"CEPIM={result['cepim']} LENIENCIA={result['leniencia']} PEP={result['pep']}"
+        r = sync_compliance(settings)
+        _log.ok(
+            "compliance",
+            f"CEIS={r['ceis']} CNEP={r['cnep']} CEPIM={r['cepim']} "
+            f"LENIENCIA={r['leniencia']} PEP={r['pep']}",
         )
     except Exception as e:  # noqa: BLE001
-        _log(f"sync compliance FALHOU: {e}")
+        _log.error("compliance", f"FALHOU: {e}")
         traceback.print_exc()
 
-    # 4) Renúncias fiscais (dados anuais nacionais — só log por enquanto)
+    # 4) Renúncias fiscais (anual nacional)
     try:
         renuncias = sync_renuncias_ultimos_anos(settings)
         for ano, (qtd, total) in renuncias.items():
-            _log(f"sync renuncias {ano} — {qtd} registros (R${total:,.2f})")
+            _log.ok("renuncias", f"{ano} → {qtd} registros (R$ {total:,.2f})")
     except Exception as e:  # noqa: BLE001
-        _log(f"sync renuncias FALHOU: {e}")
+        _log.error("renuncias", f"FALHOU: {e}")
         traceback.print_exc()
+
+
+def _check(label: str, ok: bool) -> str:
+    return f"{label:<14} {'✓' if ok else '✗'}"
 
 
 def main() -> int:
     settings = get_settings()
-    _log(f"v{__version__} iniciado")
-    _log(f"database_url    : {'OK' if settings.database_url else 'AUSENTE'}")
-    _log(f"transparencia   : {'OK' if settings.transparencia_api_key else 'AUSENTE'}")
-    _log(f"r2_account_id   : {'OK' if settings.r2_account_id else 'AUSENTE'}")
-    _log(f"ibge_sync_list  : {settings.ibge_sync_list}")
+    _log.section(f"olho-publico-etl v{__version__}")
+    _log.info("env", _check("database", bool(settings.database_url)))
+    _log.info("env", _check("transparencia", bool(settings.transparencia_api_key)))
+    _log.info("env", _check("r2", bool(settings.r2_account_id)))
+    _log.info("env", f"meses_lookback {settings.sync_meses_lookback}")
+    _log.info("env", f"sync_todas_cidades {settings.sync_todas_cidades}")
 
-    # Jobs de startup (idempotentes)
     _run_startup_jobs(settings)
 
     try:
         while True:
             _run_periodic_jobs(settings)
-            _log(f"próximo ciclo em {JOB_INTERVAL_SECONDS // 3600}h")
+            _log.info("loop", f"próximo ciclo em {JOB_INTERVAL_SECONDS // 3600}h")
             time.sleep(JOB_INTERVAL_SECONDS)
     except KeyboardInterrupt:
-        _log("encerrando por SIGINT")
+        _log.info("loop", "encerrando por SIGINT")
         return 0
 
 
