@@ -71,6 +71,14 @@ class TransparenciaClient:
             raise httpx.HTTPStatusError(
                 f"status={resp.status_code}", request=resp.request, response=resp
             )
+        if resp.status_code >= 400:
+            # Loga body antes de levantar — ajuda a diagnosticar 403/401/400
+            body = resp.text[:500]
+            print(
+                f"[transparencia] {method} {path} params={kwargs.get('params')} "
+                f"-> {resp.status_code} body={body}",
+                flush=True,
+            )
         resp.raise_for_status()
         return resp
 

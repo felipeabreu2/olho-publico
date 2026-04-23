@@ -58,12 +58,17 @@ async def fetch_transferencias_municipio(
     codigo_ibge: str,
     ano_mes: str,
 ) -> AsyncIterator[Contrato]:
-    """Pagina /transferencias para um município, mês a mês, até esgotar páginas."""
+    """Pagina /transferencias para um município, mês a mês, até esgotar páginas.
+
+    A API CGU exige intervalo mesAnoInicio + mesAnoFim em formato AAAAMM.
+    """
     pagina = 1
+    ano_mes_aaaamm = ano_mes.replace("-", "")  # "2026-04" → "202604"
     while True:
         params = {
             "codigoIbge": codigo_ibge,
-            "anoMesReferencia": ano_mes.replace("-", ""),  # API aceita YYYYMM
+            "mesAnoInicio": ano_mes_aaaamm,
+            "mesAnoFim": ano_mes_aaaamm,
             "pagina": pagina,
         }
         data = await client.get(ENDPOINT, params=params)
