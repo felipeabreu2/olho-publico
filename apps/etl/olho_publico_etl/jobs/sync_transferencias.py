@@ -32,17 +32,27 @@ from olho_publico_etl.storage.r2 import make_r2_client, upload_bytes
 
 from .recompute_agregacoes import recompute_agregacoes_municipio
 
-# 8 sources que populam `contratos`. Cada uma é fail-soft.
+# Sources que populam `contratos`. Cada uma é fail-soft.
+#
+# DESATIVADAS (exigem codigoOrgao obrigatório — impraticável filtrar
+# por município sem iterar todos os ~500 órgãos federais):
+#   /contratos, /licitacoes, /viagens, /cartao (parcial)
+#
+# REQUEREM Gov.br Ouro: /transferencias, /despesas/empenhos, /cartoes
+# (vão dar 403 com chave básica — tratado fail-soft pelo loop).
 SOURCES = [
-    ("convenios", fetch_convenios_municipio),
-    ("transferencias", fetch_transferencias_municipio),
-    ("contratos", fetch_contratos_municipio),
-    ("emendas", fetch_emendas_municipio),
-    ("licitacoes", fetch_licitacoes_municipio),
-    ("empenhos", fetch_empenhos_municipio),
-    ("cartao", fetch_cartao_municipio),
-    ("viagens", fetch_viagens_municipio),
+    ("convenios", fetch_convenios_municipio),  # ✓ funciona com básica
+    ("transferencias", fetch_transferencias_municipio),  # requer Gov.br Ouro
+    ("emendas", fetch_emendas_municipio),  # ✓ funciona
+    ("empenhos", fetch_empenhos_municipio),  # requer Gov.br Ouro
 ]
+# Imports preservados para uso futuro (job dedicado por órgão):
+_UNUSED_BY_DESIGN = (
+    fetch_contratos_municipio,
+    fetch_licitacoes_municipio,
+    fetch_cartao_municipio,
+    fetch_viagens_municipio,
+)
 
 
 async def _collect_from_source(
