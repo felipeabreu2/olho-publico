@@ -1,9 +1,17 @@
+# ──────────────────────────────────────────────────────────────────────
+# Olho Público — Stack de produção (Portainer Swarm OU docker-compose)
+#
+# Compatível com `docker stack deploy` (Swarm) e `docker compose up`.
+# Por isso depends_on é lista simples (sem `condition: service_healthy`)
+# e cada serviço tem retry/healthcheck próprio.
+# ──────────────────────────────────────────────────────────────────────
+
 version: "3.9"
 
 services:
+  # ─── Banco de dados ────────────────────────────────────────────────
   postgres:
     image: postgis/postgis:16-3.4
-    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -13,28 +21,39 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
 
+  # ─── Reverse proxy + TLS ───────────────────────────────────────────
   caddy:
     image: caddy:2-alpine
-    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-      - "5433:5433"
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
 
+  # ─── Site público (Next.js) ────────────────────────────────────────
   web:
     image: ghcr.io/${GITHUB_REPO}/web:latest
-    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/olho_publico
-      NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost}
       NODE_ENV: production
     expose:
       - "3000"
@@ -43,24 +62,32 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 10s
 
+  # ─── ETL (Python) ──────────────────────────────────────────────────
   etl:
     image: ghcr.io/${GITHUB_REPO}/etl:latest
-    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/olho_publico
       TRANSPARENCIA_API_KEY: ${TRANSPARENCIA_API_KEY}
       R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
       R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 5
 
+  # ─── Backup diário do Postgres → R2 ────────────────────────────────
   postgres-backup:
     image: postgres:16-alpine
-    restart: unless-stopped
     depends_on:
       - postgres
     environment:
@@ -72,10 +99,29 @@ services:
       R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
       AWS_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
-    volumes:
-      - ./scripts/backup.sh:/backup.sh:ro
-    entrypoint: ["/bin/sh", "-c", "while true; do sh /backup.sh; sleep 86400; done"]
+    configs:
+      - source: backup_script
+        target: /backup.sh
+        mode: 0755
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "apk add --no-cache aws-cli && while true; do sh /backup.sh 2>&1 || echo 'backup falhou (R2 ainda não configurado é normal)'; sleep 86400; done",
+      ]
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 60s
 
+# ─── Configs (Swarm + Compose) — substitui bind mount ────────────────
+configs:
+  caddyfile:
+    file: ./caddy/Caddyfile
+  backup_script:
+    file: ./scripts/backup.sh
+
+# ─── Volumes persistentes ──────────────────────────────────────────────
 volumes:
   postgres_data:
   caddy_data:
