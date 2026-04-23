@@ -4,10 +4,10 @@ import json
 
 _TOTALS_SQL = """
 SELECT
-    COALESCE(SUM(valor) FILTER (WHERE fonte = 'portal_transparencia'), 0) AS total_federais,
-    COUNT(*)           FILTER (WHERE fonte = 'portal_transparencia')    AS qtd_federais,
-    COALESCE(SUM(valor) FILTER (WHERE fonte LIKE 'prefeitura_%%'), 0)   AS total_prefeitura,
-    COUNT(*)           FILTER (WHERE fonte LIKE 'prefeitura_%%')        AS qtd_prefeitura
+    COALESCE(SUM(valor) FILTER (WHERE fonte = 'portal_transparencia'), 0)   AS total_federais,
+    COUNT(*)            FILTER (WHERE fonte = 'portal_transparencia')       AS qtd_federais,
+    COALESCE(SUM(valor) FILTER (WHERE fonte::text LIKE 'prefeitura_%%'), 0) AS total_prefeitura,
+    COUNT(*)            FILTER (WHERE fonte::text LIKE 'prefeitura_%%')     AS qtd_prefeitura
 FROM contratos
 WHERE municipio_aplicacao_id = %s
   AND EXTRACT(YEAR FROM data_assinatura) = %s;
