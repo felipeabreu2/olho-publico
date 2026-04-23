@@ -85,7 +85,12 @@ services:
     networks:
       - OptionNet
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/olho_publico
+      # Postgres: componentes separados (evita URL encoding de senhas com @/:/?/#)
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: olho_publico
       TRANSPARENCIA_API_KEY: ${TRANSPARENCIA_API_KEY}
       TRANSPARENCIA_RATE_PER_MINUTE: ${TRANSPARENCIA_RATE_PER_MINUTE:-400}
       IBGE_SYNC_LIST: ${IBGE_SYNC_LIST:-3550308}

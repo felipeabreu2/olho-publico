@@ -8,11 +8,11 @@ from olho_publico_etl.sources.ibge.municipios import (
 )
 
 
-def run(database_url: str) -> int:
+def run(conninfo: str) -> int:
     """Baixa lista do IBGE e faz upsert em municipios. Retorna qtd inseridos/atualizados."""
     payload = fetch_ibge_municipios()
     municipios = list(parse_ibge_payload(payload))
-    pool = make_pool(database_url)
+    pool = make_pool(conninfo)
     try:
         with pool.connection() as conn:
             return upsert_municipios(conn, municipios)

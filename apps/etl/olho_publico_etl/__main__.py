@@ -38,7 +38,7 @@ def _ano_mes_corrente() -> str:
 
 def _run_startup_jobs(settings: Settings) -> None:
     try:
-        n = run_sync_ibge(settings.database_url)
+        n = run_sync_ibge(settings.db_conninfo())
         _log(f"sync_ibge OK — {n} municipios upsertados")
     except Exception as e:  # noqa: BLE001
         _log(f"sync_ibge FALHOU: {e}")

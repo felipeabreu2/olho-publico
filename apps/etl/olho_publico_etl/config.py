@@ -6,7 +6,30 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+    # ── Postgres ──
+    # Quando POSTGRES_USER/PASSWORD são fornecidos, conninfo é construído em
+    # formato libpq keyword (não exige URL encoding de senhas com @/:/?/etc).
+    # Caso contrário, usa database_url diretamente (compatibilidade).
     database_url: str = "postgresql://postgres:postgres@localhost:5432/olho_publico"
+    postgres_user: str = ""
+    postgres_password: str = ""
+    postgres_host: str = "postgres"
+    postgres_port: int = 5432
+    postgres_db: str = "olho_publico"
+
+    def db_conninfo(self) -> str:
+        """Retorna conninfo psycopg-compatível.
+
+        Prefere libpq keyword format quando POSTGRES_USER/PASSWORD presentes
+        (evita problemas de URL encoding em senhas com @, :, #, ?, & etc).
+        """
+        if self.postgres_user and self.postgres_password:
+            return (
+                f"host={self.postgres_host} port={self.postgres_port} "
+                f"user={self.postgres_user} password={self.postgres_password} "
+                f"dbname={self.postgres_db}"
+            )
+        return self.database_url
 
     r2_account_id: str = ""
     r2_access_key_id: str = ""

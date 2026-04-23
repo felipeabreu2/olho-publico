@@ -72,11 +72,16 @@ class TransparenciaClient:
                 f"status={resp.status_code}", request=resp.request, response=resp
             )
         if resp.status_code >= 400:
-            # Loga body antes de levantar — ajuda a diagnosticar 403/401/400
+            # Loga body e headers antes de levantar — ajuda diagnosticar 403/401/400
             body = resp.text[:500]
+            hdrs = {
+                k: v
+                for k, v in resp.headers.items()
+                if k.lower() not in {"date", "server", "content-type", "connection"}
+            }
             print(
                 f"[transparencia] {method} {path} params={kwargs.get('params')} "
-                f"-> {resp.status_code} body={body}",
+                f"-> {resp.status_code} headers={hdrs} body={body!r}",
                 flush=True,
             )
         resp.raise_for_status()

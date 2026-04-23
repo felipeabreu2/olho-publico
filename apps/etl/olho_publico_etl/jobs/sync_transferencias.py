@@ -69,7 +69,7 @@ def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) 
         for c in contratos
         if c.cnpj_fornecedor
     ]
-    pool = make_pool(settings.database_url)
+    pool = make_pool(settings.db_conninfo())
     try:
         with pool.connection() as conn:
             upsert_empresas(conn, empresas_min)
