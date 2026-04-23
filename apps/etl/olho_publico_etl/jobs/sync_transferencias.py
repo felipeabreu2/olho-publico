@@ -17,24 +17,31 @@ from olho_publico_etl.pipeline.bronze import (
     contratos_to_parquet_bytes,
 )
 from olho_publico_etl.pipeline.gold import upsert_contratos, upsert_empresas
+from olho_publico_etl.sources.transparencia.cartao import fetch_cartao_municipio
 from olho_publico_etl.sources.transparencia.client import TransparenciaClient
 from olho_publico_etl.sources.transparencia.contratos import fetch_contratos_municipio
 from olho_publico_etl.sources.transparencia.convenios import fetch_convenios_municipio
 from olho_publico_etl.sources.transparencia.emendas import fetch_emendas_municipio
+from olho_publico_etl.sources.transparencia.empenhos import fetch_empenhos_municipio
+from olho_publico_etl.sources.transparencia.licitacoes import fetch_licitacoes_municipio
 from olho_publico_etl.sources.transparencia.transferencias import (
     fetch_transferencias_municipio,
 )
+from olho_publico_etl.sources.transparencia.viagens import fetch_viagens_municipio
 from olho_publico_etl.storage.r2 import make_r2_client, upload_bytes
 
 from .recompute_agregacoes import recompute_agregacoes_municipio
 
-# Sources cadastradas: (nome para log, função fetcher).
-# Cada fetcher tem mesma assinatura: (client, *, codigo_ibge, ano_mes) -> AsyncIterator[Contrato]
+# 8 sources que populam `contratos`. Cada uma é fail-soft.
 SOURCES = [
     ("convenios", fetch_convenios_municipio),
     ("transferencias", fetch_transferencias_municipio),
     ("contratos", fetch_contratos_municipio),
     ("emendas", fetch_emendas_municipio),
+    ("licitacoes", fetch_licitacoes_municipio),
+    ("empenhos", fetch_empenhos_municipio),
+    ("cartao", fetch_cartao_municipio),
+    ("viagens", fetch_viagens_municipio),
 ]
 
 

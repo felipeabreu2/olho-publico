@@ -8,3 +8,5 @@ export * from "./agregacoes";
 export * from "./regras_alerta";
 export * from "./alertas";
 export * from "./contestacoes";
+export * from "./programas_sociais";
+export * from "./pessoas_pep";

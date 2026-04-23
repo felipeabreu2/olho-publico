@@ -93,3 +93,103 @@ def upsert_contratos(conn, contratos: Iterable[Contrato]) -> int:
         cur.executemany(_CONTRATOS_SQL, params)
     conn.commit()
     return len(params)
+
+
+# ─── Sanções (CEIS/CNEP) ─────────────────────────────────────────────
+_SANCOES_SQL = """
+INSERT INTO sancoes (
+    cnpj, tipo_sancao, orgao_sancionador, data_inicio, data_fim, motivo, fonte_url
+) VALUES (
+    %(cnpj)s, %(tipo_sancao)s, %(orgao_sancionador)s,
+    %(data_inicio)s, %(data_fim)s, %(motivo)s, %(fonte_url)s
+)
+ON CONFLICT DO NOTHING;
+"""
+
+
+def upsert_sancoes(conn, sancoes) -> int:
+    """Insere sanções; ignora duplicatas via ON CONFLICT."""
+    params = [
+        {
+            "cnpj": s.cnpj,
+            "tipo_sancao": s.tipo_sancao,
+            "orgao_sancionador": s.orgao_sancionador,
+            "data_inicio": s.data_inicio,
+            "data_fim": s.data_fim,
+            "motivo": s.motivo,
+            "fonte_url": s.fonte_url,
+        }
+        for s in sancoes
+    ]
+    if not params:
+        return 0
+    with conn.cursor() as cur:
+        cur.executemany(_SANCOES_SQL, params)
+    conn.commit()
+    return len(params)
+
+
+# ─── Programas sociais ────────────────────────────────────────────────
+_PROGRAMAS_SOCIAIS_SQL = """
+INSERT INTO programas_sociais (
+    municipio_id, programa, ano_mes,
+    qtd_beneficiarios, valor_total, valor_medio_beneficiario, fonte
+) VALUES (
+    %(municipio_id)s, %(programa)s, %(ano_mes)s,
+    %(qtd_beneficiarios)s, %(valor_total)s, %(valor_medio_beneficiario)s, 'portal_transparencia'
+)
+ON CONFLICT (municipio_id, programa, ano_mes) DO UPDATE
+SET qtd_beneficiarios = EXCLUDED.qtd_beneficiarios,
+    valor_total = EXCLUDED.valor_total,
+    valor_medio_beneficiario = EXCLUDED.valor_medio_beneficiario;
+"""
+
+
+def upsert_programas_sociais(conn, registros) -> int:
+    params = [
+        {
+            "municipio_id": r.municipio_id,
+            "programa": r.programa,
+            "ano_mes": r.ano_mes,
+            "qtd_beneficiarios": r.qtd_beneficiarios,
+            "valor_total": str(r.valor_total),
+            "valor_medio_beneficiario": (
+                str(r.valor_medio_beneficiario) if r.valor_medio_beneficiario else None
+            ),
+        }
+        for r in registros
+    ]
+    if not params:
+        return 0
+    with conn.cursor() as cur:
+        cur.executemany(_PROGRAMAS_SOCIAIS_SQL, params)
+    conn.commit()
+    return len(params)
+
+
+# ─── PEP (Pessoas Politicamente Expostas) ────────────────────────────
+_PEP_SQL = """
+INSERT INTO pessoas_pep (cpf_mascarado, nome, cargo, orgao, data_inicio, data_fim)
+VALUES (%(cpf_mascarado)s, %(nome)s, %(cargo)s, %(orgao)s, %(data_inicio)s, %(data_fim)s)
+ON CONFLICT DO NOTHING;
+"""
+
+
+def upsert_pep(conn, registros) -> int:
+    params = [
+        {
+            "cpf_mascarado": r.cpf_mascarado,
+            "nome": r.nome,
+            "cargo": r.cargo,
+            "orgao": r.orgao,
+            "data_inicio": r.data_inicio,
+            "data_fim": r.data_fim,
+        }
+        for r in registros
+    ]
+    if not params:
+        return 0
+    with conn.cursor() as cur:
+        cur.executemany(_PEP_SQL, params)
+    conn.commit()
+    return len(params)

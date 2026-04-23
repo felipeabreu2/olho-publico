@@ -17,7 +17,9 @@ from datetime import UTC, datetime
 
 from olho_publico_etl import __version__
 from olho_publico_etl.config import Settings, get_settings, require_settings
+from olho_publico_etl.jobs.sync_compliance import sync_compliance
 from olho_publico_etl.jobs.sync_ibge import run as run_sync_ibge
+from olho_publico_etl.jobs.sync_programas_sociais import run_multiplas_cidades_sociais
 from olho_publico_etl.jobs.sync_transferencias import run_multiplas_cidades
 
 JOB_INTERVAL_SECONDS = 6 * 3600  # 6h
@@ -49,16 +51,36 @@ def _run_periodic_jobs(settings: Settings) -> None:
     try:
         require_settings("transparencia_api_key")
     except RuntimeError as e:
-        _log(f"sync_transferencias pulado: {e}")
+        _log(f"jobs Transparencia pulados: {e}")
         return
     ibge_ids = [x.strip() for x in settings.ibge_sync_list.split(",") if x.strip()]
     ano_mes = _ano_mes_corrente()
+
+    # 1) Contratos (8 sources: convenios, transferencias, emendas, contratos,
+    #    licitacoes, empenhos, cartao, viagens)
     try:
         result = run_multiplas_cidades(settings, ibge_ids, ano_mes)
         for ibge, n in result.items():
-            _log(f"sync_transferencias {ibge} {ano_mes} — {n} contratos")
+            _log(f"sync contratos-like {ibge} {ano_mes} — {n} contratos totais")
     except Exception as e:  # noqa: BLE001
-        _log(f"sync_transferencias FALHOU: {e}")
+        _log(f"sync contratos-like FALHOU: {e}")
+        traceback.print_exc()
+
+    # 2) Programas sociais (bolsa familia, aux brasil, defeso)
+    try:
+        result = run_multiplas_cidades_sociais(settings, ibge_ids, ano_mes)
+        for ibge, n in result.items():
+            _log(f"sync programas sociais {ibge} {ano_mes} — {n} registros")
+    except Exception as e:  # noqa: BLE001
+        _log(f"sync programas sociais FALHOU: {e}")
+        traceback.print_exc()
+
+    # 3) Compliance (CEIS, CNEP, PEP — datasets nacionais, sync completo)
+    try:
+        result = sync_compliance(settings)
+        _log(f"sync compliance — CEIS={result['ceis']} CNEP={result['cnep']} PEP={result['pep']}")
+    except Exception as e:  # noqa: BLE001
+        _log(f"sync compliance FALHOU: {e}")
         traceback.print_exc()
 
 
