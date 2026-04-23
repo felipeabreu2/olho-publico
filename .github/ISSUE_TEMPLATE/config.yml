@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Reportar vulnerabilidade de segurança
+    url: https://github.com/felipeabreu2/olho-publico/security/advisories/new
+    about: Use o canal privado para vulnerabilidades — NÃO abra issue pública.
+  - name: 💬 Dúvida geral ou discussão
+    url: https://github.com/felipeabreu2/olho-publico/discussions
+    about: Para perguntas, ideias ou conversas que não são bug nem proposta concreta.

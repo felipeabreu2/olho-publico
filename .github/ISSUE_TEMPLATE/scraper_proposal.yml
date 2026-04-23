@@ -1,0 +1,89 @@
+name: 🕷️ Propor scraper de prefeitura
+description: Investigou o portal de uma prefeitura e quer ajudar a integrar?
+title: "[scraper] "
+labels: ["scraper", "etl", "help-wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cobertura de prefeituras é o maior gargalo do projeto. Cada scraper construído libera centenas de cidades de uma vez (quando o ERP é comum).
+
+        Veja a estratégia em [docs/superpowers/specs/2026-04-22-olho-publico-design.md](../../docs/superpowers/specs/2026-04-22-olho-publico-design.md#7-pipeline-etl--fontes-da-v1).
+
+  - type: input
+    id: cidade
+    attributes:
+      label: Cidade investigada
+      placeholder: Itabaiana - SE
+    validations:
+      required: true
+
+  - type: input
+    id: portal_url
+    attributes:
+      label: URL do portal de transparência
+      placeholder: https://transparencia.itabaiana.se.gov.br
+    validations:
+      required: true
+
+  - type: dropdown
+    id: erp
+    attributes:
+      label: ERP detectado
+      description: Geralmente o rodapé do portal indica. Veja a lista dos mais comuns no spec.
+      options:
+        - "E&L"
+        - "IPM"
+        - "Betha"
+        - "Equiplano"
+        - "Tiplan"
+        - "GovBR (Padrão Federal)"
+        - "Próprio / artesanal"
+        - "Não consegui identificar"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cobertura_disponivel
+    attributes:
+      label: O que o portal expõe
+      multiple: true
+      options:
+        - Contratos
+        - Licitações
+        - Folha de pagamento
+        - Receitas
+        - Despesas detalhadas
+        - Diárias
+        - Convênios
+        - Servidores
+
+  - type: dropdown
+    id: api
+    attributes:
+      label: Tem API ou só HTML?
+      options:
+        - API REST documentada
+        - API REST não documentada (descobri via DevTools)
+        - Só HTML (precisa scraper Playwright)
+        - Só PDF / arquivos baixáveis
+        - Outro / mistura
+
+  - type: textarea
+    id: notas
+    attributes:
+      label: Observações técnicas
+      description: |
+        - Tem captcha?
+        - Bloqueia user-agent não-browser?
+        - Estrutura de URLs descoberta
+        - Endpoints encontrados
+        - Particularidades
+
+  - type: checkboxes
+    id: oferta
+    attributes:
+      label: Você quer implementar?
+      options:
+        - label: Sim, posso implementar o scraper se houver review
+        - label: Só estou reportando para quem quiser pegar

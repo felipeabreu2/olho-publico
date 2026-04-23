@@ -1,0 +1,45 @@
+name: ✨ Sugestão de funcionalidade
+description: Tem uma ideia para melhorar o Olho Público?
+title: "[feat] "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema você quer resolver
+      description: Descreva o caso real (não a solução). Ex.: "Eu queria comparar duas cidades lado a lado, hoje preciso abrir duas abas..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solução que você imagina
+      description: Como você vê isso funcionando? Pode ser texto, sketch, link de referência.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que você considerou (opcional)
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Para qual público essa funcionalidade serve mais?
+      options:
+        - Cidadão comum
+        - Jornalista
+        - Pesquisador / acadêmico
+        - Compliance / due diligence
+        - Vereador / oposição
+        - Geral
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Telas de referência, links, exemplos de outros sites...

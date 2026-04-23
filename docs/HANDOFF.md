@@ -20,11 +20,27 @@
 
 ## 1. Contas e segredos (15 min)
 
-- [ ] Criar repositório no GitHub: https://github.com/new (sugestão: `olho-publico`)
-- [ ] Push do código local: `git remote add origin git@github.com:USER/olho-publico.git && git push -u origin main`
+- [x] Criar repositório no GitHub: https://github.com/new (sugestão: `olho-publico`)
+- [x] Push do código local: `git remote add origin git@github.com:felipeabreu2/olho-publico.git && git push -u origin main`
 - [ ] Criar conta Vercel: https://vercel.com/signup (login com GitHub)
 - [ ] Criar conta Cloudflare (se ainda não tem): https://dash.cloudflare.com/sign-up
 - [ ] Criar conta Sentry: https://sentry.io/signup (hobby plan)
+
+## 1.5. Settings de segurança no GitHub (5 min)
+
+Estes são settings do repositório que precisam ser ligados manualmente — Dependabot, CodeQL e Secret Scanning **estão configurados via arquivo** mas alguns precisam de toggle no painel:
+
+Vá em **Settings → Code security and analysis** (https://github.com/felipeabreu2/olho-publico/settings/security_analysis) e habilite:
+
+- [ ] **Dependabot alerts** (já tem `.github/dependabot.yml`, falta ligar alerts)
+- [ ] **Dependabot security updates**
+- [ ] **Dependabot version updates** (carrega `.github/dependabot.yml`)
+- [ ] **Code scanning** (já tem `.github/workflows/codeql.yml`, ligar "Set up → Default" ou deixar workflow rodar)
+- [ ] **Secret scanning** (free para repos públicos)
+- [ ] **Secret scanning push protection** (impede commit de segredos)
+- [ ] **Private vulnerability reporting** (em Settings → Code security → Private vulnerability reporting → Enable)
+
+Depois disso, [github.com/felipeabreu2/olho-publico/security](https://github.com/felipeabreu2/olho-publico/security) vai mostrar tudo verde.
 
 ## 2. Domínio (10 min)
 

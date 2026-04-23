@@ -1,0 +1,78 @@
+name: 🐛 Bug no site ou no ETL
+description: Algo não funciona como deveria — página em branco, erro 500, scraper que parou, etc.
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar! Quanto mais detalhes, mais rápido conseguimos corrigir.
+
+        **Antes de abrir, verifique se já não existe issue parecida em [issues abertas](https://github.com/felipeabreu2/olho-publico/issues).**
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afetada
+      options:
+        - Site (frontend Next.js)
+        - ETL Python (scrapers / ingestão)
+        - Banco de dados (schema, queries)
+        - Infra (Docker, Caddy, deploy)
+        - CI/CD (GitHub Actions)
+        - Documentação
+        - Não sei
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: O que aconteceu
+      description: Descreva o problema em poucas palavras.
+      placeholder: "Ao abrir a página da cidade X, vejo a mensagem..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Abrir a página `/cidade/SP/sao-paulo`
+        2. Clicar em...
+        3. Ver erro
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que você esperava que acontecesse
+
+  - type: input
+    id: url
+    attributes:
+      label: URL onde o problema acontece (se aplicável)
+      placeholder: https://olhopublico.org/cidade/...
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Navegador (se for problema no site)
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Mobile (Chrome Android)
+        - Mobile (Safari iOS)
+        - Outro
+        - Não se aplica
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / mensagens de erro / screenshot
+      description: Cole aqui qualquer log do console, mensagem do scraper ou anexe screenshots.
+      render: shell

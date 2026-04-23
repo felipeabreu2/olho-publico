@@ -1,0 +1,90 @@
+name: ⚠️ Propor nova regra de alerta
+description: Tem uma ideia de padrão para detectar irregularidade automaticamente?
+title: "[regra] "
+labels: ["regra-alerta", "metodologia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cada regra de alerta vai virar **código aberto e versionado** (em `apps/etl/olho_publico_etl/alerts/rules/`).
+
+        Antes de propor, leia as regras já existentes em [docs/METODOLOGIA.md](../../docs/METODOLOGIA.md).
+
+  - type: input
+    id: codigo
+    attributes:
+      label: Código sugerido (UPPER_SNAKE_CASE)
+      placeholder: SOCIO_LARANJA
+    validations:
+      required: true
+
+  - type: input
+    id: nome
+    attributes:
+      label: Nome legível em português
+      placeholder: Sócio aparente "laranja"
+    validations:
+      required: true
+
+  - type: textarea
+    id: hipotese
+    attributes:
+      label: Que padrão de irregularidade isso detecta?
+      description: Descreva em uma frase para um leitor leigo.
+      placeholder: "Detecta empresas cujos sócios formais são pessoas de baixa renda mas que aparecem como dono de empresa multimilionária."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logica
+    attributes:
+      label: Lógica formal proposta (em texto, sem código)
+      description: |
+        Como definir o critério em termos quantitativos checáveis nos dados?
+      placeholder: |
+        - Empresa tem contratos públicos > R$ 5M nos últimos 2 anos
+        - Sócio principal (>50%) é pessoa física que recebeu Bolsa Família ou BPC nos últimos 5 anos
+        - Sócio entrou na empresa nos últimos 18 meses
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade padrão sugerida
+      options:
+        - "info — só informativo"
+        - "atencao — sinal moderado"
+        - "forte — sinal alto, mas ainda não acusação"
+    validations:
+      required: true
+
+  - type: textarea
+    id: fontes
+    attributes:
+      label: Fontes de dados necessárias
+      description: Quais bases precisam estar ingeridas para essa regra rodar?
+
+  - type: textarea
+    id: falsos_positivos
+    attributes:
+      label: Possíveis falsos positivos
+      description: Pense contra a sua própria regra — em que situação ela poderia apontar uma empresa honesta como suspeita?
+    validations:
+      required: true
+
+  - type: textarea
+    id: caso_real
+    attributes:
+      label: Caso real conhecido (opcional)
+      description: Link para matéria, denúncia ou caso concreto que motivou a regra.
+
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: Considerei ao menos 2 cenários de falso positivo e listei acima
+          required: true
+        - label: Entendo que toda regra carrega disclaimer obrigatório de "sinal não é acusação"
+          required: true

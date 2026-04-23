@@ -1,0 +1,18 @@
+# Configurações de patrocínio mostradas na home do repositório.
+# Descomente as linhas conforme contas forem criadas.
+
+# github: [felipeabreu2]                # GitHub Sponsors (até 4 usernames)
+# patreon:                              # Patreon username
+# open_collective:                      # Open Collective slug
+# ko_fi:                                # Ko-fi username
+# tidelift:                             # tidelift platform-name/package-name
+# community_bridge:                     # Community Bridge project name
+# liberapay:                            # Liberapay username
+# issuehunt:                            # IssueHunt username
+# otechie:                              # Otechie username
+# lfx_crowdfunding:                     # LFX crowdfunding project name
+# polar:                                # Polar username
+# buy_me_a_coffee:                      # Buy Me a Coffee username
+# thanks_dev:                           # thanks.dev username
+custom:
+  - "https://olhopublico.org/apoiar"   # página própria de apoio (criar quando domínio existir)

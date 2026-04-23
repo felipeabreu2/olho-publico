@@ -1,0 +1,68 @@
+name: 📊 Dado incorreto / contestação
+description: Encontrou um número errado, alerta injusto ou empresa/cidade com info desatualizada?
+title: "[dado] "
+labels: ["dado-incorreto", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por nos ajudar a manter os dados corretos. Toda contestação procedente é publicada vinculada ao registro original.
+
+        **Se você for a empresa, pessoa ou órgão público mencionado**, prefira usar o canal privado: contato@olhopublico.org
+
+  - type: input
+    id: url
+    attributes:
+      label: Link da página onde aparece o dado
+      placeholder: https://olhopublico.org/cidade/SP/sao-paulo
+    validations:
+      required: true
+
+  - type: textarea
+    id: dado_atual
+    attributes:
+      label: O que o site mostra hoje
+      description: Copie o texto exato ou descreva o que aparece.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dado_correto
+    attributes:
+      label: Qual é o dado correto
+    validations:
+      required: true
+
+  - type: textarea
+    id: fonte
+    attributes:
+      label: Fonte oficial que comprova o correto
+      description: Link para Diário Oficial, Portal da Transparência, decisão judicial, etc.
+      placeholder: https://...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo de problema
+      options:
+        - Valor monetário errado (contrato, doação)
+        - Empresa errada (CNPJ trocado, razão social desatualizada)
+        - Alerta injusto (sinal não procede no meu caso)
+        - Cidade / estado errado
+        - Dado de pessoa pública desatualizado (cargo, partido)
+        - CPF aparecendo sem mascaramento (URGENTE — LGPD)
+        - Outro
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: Confirmo que a fonte oficial que indiquei está pública e acessível
+          required: true
+        - label: Entendo que sinais (alertas) não são acusações e que minha contestação será analisada com base nos dados-fonte
+          required: true
