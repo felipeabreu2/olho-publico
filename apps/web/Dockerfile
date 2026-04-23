@@ -55,8 +55,7 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public ./apps/web/publi
 USER nextjs
 EXPOSE 3000
 
-# Healthcheck simples
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1
+# Healthcheck via Traefik externo — sem HEALTHCHECK no Dockerfile
+# (evita Swarm matando container por falsos positivos do wget --spider)
 
 CMD ["node", "apps/web/server.js"]
