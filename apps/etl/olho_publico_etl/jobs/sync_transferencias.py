@@ -19,8 +19,10 @@ from olho_publico_etl.storage.r2 import make_r2_client, upload_bytes
 from .recompute_agregacoes import recompute_agregacoes_municipio
 
 
-async def _collect_contratos(api_key: str, codigo_ibge: str, ano_mes: str) -> list:
-    async with TransparenciaClient(api_key=api_key) as c:
+async def _collect_contratos(
+    api_key: str, codigo_ibge: str, ano_mes: str, *, rate_per_minute: int
+) -> list:
+    async with TransparenciaClient(api_key=api_key, rate_per_minute=rate_per_minute) as c:
         out = []
         async for contrato in fetch_transferencias_municipio(
             c, codigo_ibge=codigo_ibge, ano_mes=ano_mes
@@ -35,7 +37,12 @@ def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) 
     Retorna a quantidade de contratos inseridos.
     """
     contratos = asyncio.run(
-        _collect_contratos(settings.transparencia_api_key, codigo_ibge, ano_mes)
+        _collect_contratos(
+            settings.transparencia_api_key,
+            codigo_ibge,
+            ano_mes,
+            rate_per_minute=settings.transparencia_rate_per_minute,
+        )
     )
     if not contratos:
         return 0

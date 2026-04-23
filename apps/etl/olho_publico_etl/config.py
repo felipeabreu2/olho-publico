@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     r2_bucket_backups: str = "olho-publico-backups"
 
     transparencia_api_key: str = ""
+    # 400 = limite diurno padrão da CGU. 700 entre 00h-06h. 180 para APIs restritas.
+    transparencia_rate_per_minute: int = 400
 
     # Lista CSV de IDs IBGE para sync periódico (ex: "3550308,3304557")
     ibge_sync_list: str = "3550308"

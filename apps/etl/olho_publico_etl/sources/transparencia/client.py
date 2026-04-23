@@ -21,7 +21,11 @@ from tenacity import (
 from .rate_limit import TokenBucket
 
 BASE_URL = "https://api.portaldatransparencia.gov.br"
-DEFAULT_RATE_PER_MINUTE = 90  # limite oficial CGU
+# Limite oficial CGU: 400 req/min em horário comercial, 700 entre 00h-06h.
+# Usamos 400 como padrão seguro 24/7. APIs restritas (auxílio, bolsa família por
+# beneficiário) têm limite de 180 — se for usar alguma, override com env var
+# TRANSPARENCIA_RATE_PER_MINUTE.
+DEFAULT_RATE_PER_MINUTE = 400
 
 
 class TransparenciaClient:
