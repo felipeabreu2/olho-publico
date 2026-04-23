@@ -1,43 +1,69 @@
-# Subir Olho Público no Portainer
+# Subir Olho Público no Portainer (Swarm + Traefik)
 
-Guia para subir **TUDO** (web + ETL + Postgres + Caddy + backup) na sua VPS via Portainer.
+Stack pensada para o ambiente Option Growth (Traefik + rede `OptionNet`).
 
-## Pré-requisitos
+## Pré-requisitos no host
 
-- VPS com Docker + Portainer rodando (você já tem)
-- Repositório no GitHub: `felipeabreu2/olho-publico`
-- Imagens Docker já buildadas pelo CI no GHCR: `ghcr.io/felipeabreu2/olho-publico/web:latest` e `ghcr.io/felipeabreu2/olho-publico/etl:latest`
+- Docker Swarm ativo (você já tem)
+- Portainer rodando (você já tem)
+- Traefik rodando como stack separada com `letsencryptresolver` no entrypoint `websecure` (você já tem — exemplo no `ollama` stack)
+- Rede `OptionNet` externa criada (você já tem)
+- DNS apontando o subdomínio escolhido (`olho.optiongrowth.com.br`) para o IP do Swarm manager
 
-> **Como verificar se as imagens existem:** https://github.com/felipeabreu2?tab=packages
-> Após push pra `main`, GitHub Actions builda automaticamente. Demora ~5 min na primeira vez.
+## ⚠️ Resolver o erro "stack already exists"
 
-## Passo a passo
+Se aparecer "A stack with the normalized name 'olho-publico' already exists", a stack anterior ficou registrada (mesmo que o deploy tenha falhado). **Antes de recriar, apague a velha:**
 
-### 1. Tornar as imagens públicas no GHCR (uma vez só)
+1. Portainer → **Stacks**
+2. Achar `olho-publico` na lista (provavelmente status "limited" ou "inactive")
+3. Selecionar e clicar em **Remove**
+4. Confirmar — pode marcar **"Remove non-persistent volumes"** (postgres usa volume externo, não some)
 
-Por padrão, imagens no GHCR são privadas. Para o Portainer puxar sem login:
+Agora pode recriar.
 
-1. Vá em https://github.com/felipeabreu2?tab=packages
-2. Clique em `olho-publico/web` → **Package settings** → **Change visibility** → **Public**
-3. Repita para `olho-publico/etl`
+## Passo 1 — Criar volume externo na VPS (uma vez só)
 
-> Alternativa (se quiser manter privado): configurar registry com login no Portainer (Registries → Add → GHCR + Personal Access Token).
+Por SSH na VPS:
 
-### 2. Criar a Stack no Portainer
+```bash
+docker volume create olho_publico_postgres
+```
 
-1. Portainer → **Stacks** → **Add stack**
+Verifique:
+
+```bash
+docker volume ls | grep olho_publico
+# olho_publico_postgres  ← deve aparecer
+```
+
+> Sem isso, o Swarm reclama que o volume não existe.
+
+## Passo 2 — Tornar imagens GHCR públicas (uma vez só)
+
+Vai em https://github.com/felipeabreu2?tab=packages e, para cada imagem (`olho-publico/web`, `olho-publico/etl`):
+
+- **Package settings** → **Change visibility** → **Public**
+
+> Sem isso, Swarm não consegue fazer pull.
+
+## Passo 3 — Criar Stack no Portainer
+
+1. **Stacks** → **Add stack**
 2. **Name:** `olho-publico`
-3. **Build method:** escolha **Repository**
+3. **Build method:** **Repository**
    - **Repository URL:** `https://github.com/felipeabreu2/olho-publico`
    - **Repository reference:** `refs/heads/main`
    - **Compose path:** `infra/docker-compose.prod.yml`
-   - **Authentication:** não precisa (repo público)
-4. **Environment variables:** clique em **Advanced mode** e cole:
+   - **Authentication:** desligado (repo público)
+4. **GitOps updates:** ligar **Pull and redeploy**, polling **5 minutes**
+
+5. **Environment variables** → **Advanced mode** → cole:
 
 ```env
 POSTGRES_USER=olho
 POSTGRES_PASSWORD=COLOQUE_UMA_SENHA_FORTE_AQUI
-SITE_URL=http://SEU_IP_DA_VPS
+WEB_HOST=olho.optiongrowth.com.br
+SITE_URL=https://olho.optiongrowth.com.br
 GITHUB_REPO=felipeabreu2/olho-publico
 TRANSPARENCIA_API_KEY=
 R2_ACCOUNT_ID=
@@ -46,77 +72,82 @@ R2_SECRET_ACCESS_KEY=
 R2_BUCKET_RAW=olho-publico-raw
 R2_BUCKET_BRONZE=olho-publico-bronze
 R2_BUCKET_BACKUPS=olho-publico-backups
-DAGSTER_PASSWORD_HASH=
 ```
 
-> ETL e R2 podem ficar vazios por enquanto — o **web vai subir mesmo sem eles**, usando os dados mock que estão no código.
+> Pode deixar `TRANSPARENCIA_API_KEY` e R2 vazios. O **web sobe sem eles** com mock data; só `etl` e `postgres-backup` ficam aguardando essas variáveis.
 
-5. **GitOps updates** (opcional, recomendado):
-   - Marque **Pull and redeploy**
-   - **Polling interval:** 5 minutes
-   - Assim, todo push pra `main` faz a stack pegar o código novo automaticamente.
+6. **Deploy the stack**
 
-6. Clique em **Deploy the stack**.
+## Passo 4 — Apontar DNS
 
-### 3. Aguardar containers ficarem healthy
+No Cloudflare (ou onde o domínio `optiongrowth.com.br` está):
 
-No Portainer → **Containers**, você verá:
+- Adicionar **A record**: `olho` → IP da VPS (proxy Cloudflare opcional, Traefik pega o cert via DNS-01 ou HTTP-01)
 
-| Container | Status esperado |
-|---|---|
-| `olho-publico_postgres_1` | ✅ healthy (~30s) |
-| `olho-publico_web_1` | ✅ healthy (~1min) |
-| `olho-publico_caddy_1` | ✅ running |
-| `olho-publico_etl_1` | ⚠️ pode dar restart loop até ter `TRANSPARENCIA_API_KEY` (normal) |
-| `olho-publico_postgres-backup_1` | ✅ running (mesmo sem R2 configurado, só vai falhar no upload) |
+Aguardar propagação (~1 min).
 
-### 4. Aplicar o schema do banco (uma vez)
+## Passo 5 — Aplicar schema do banco (uma vez)
 
-Antes do site servir dados reais, o Postgres precisa do schema. Rodar uma vez:
+Schema Drizzle vai no Postgres. Da sua máquina local:
 
 ```bash
-# Da sua máquina local (ou via Portainer Console no container postgres)
-docker exec -e PGPASSWORD=SUA_SENHA olho-publico_postgres_1 \
-  psql -U olho -d olho_publico -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+# Variáveis
+export POSTGRES_USER=olho
+export POSTGRES_PASSWORD=SUA_SENHA
 
-# Aplicar migration Drizzle (da sua máquina, apontando pro Postgres da VPS)
-DATABASE_URL=postgresql://olho:SUA_SENHA@IP_DA_VPS:5432/olho_publico pnpm db:migrate
+# Habilitar extensões necessárias (uma vez)
+docker exec -i $(docker ps -qf "name=olho-publico_postgres") \
+  psql -U $POSTGRES_USER -d olho_publico -c "
+    CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  "
+
+# Aplicar migrations Drizzle (precisa de acesso de rede ao postgres)
+# Opção A: rodar Drizzle de dentro de um container temporário na rede OptionNet
+docker run --rm --network OptionNet \
+  -v $(pwd):/work -w /work \
+  node:22-alpine sh -c "
+    corepack enable pnpm && \
+    pnpm install --frozen-lockfile && \
+    DATABASE_URL=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/olho_publico \
+    pnpm db:migrate
+  "
+
+# Opção B: expor porta 5432 temporariamente no compose, rodar pnpm db:migrate
+# da máquina local, e fechar a porta de volta.
 ```
 
-> **Atenção firewall:** se a porta 5432 não estiver aberta para o seu IP, exponha-a temporariamente no compose ou rode `docker exec` direto no container.
+## Passo 6 — Acessar o site
 
-### 5. Acessar o site
+`https://olho.optiongrowth.com.br` deve renderizar o site no tema escuro.
 
-- **Antes de ter domínio:** `http://IP_DA_VPS` (porta 80, Caddy serve direto sem TLS)
-- **Depois de configurar DNS:**
-  1. Aponte `olhopublico.org` (e `www`) para o IP da VPS no Cloudflare
-  2. Edite `infra/caddy/Caddyfile` — comente o `:80 {}` e descomente o bloco do domínio
-  3. Commit + push → GitOps redeploya → Caddy pega TLS automático via Let's Encrypt
+Verificar logs no Portainer → **Containers** → `olho-publico_web.1...` → **Logs**.
+
+## Containers esperados
+
+| Serviço | Status esperado |
+|---|---|
+| `olho-publico_postgres` | ✅ healthy (~30s) |
+| `olho-publico_web` | ✅ running (~1min) — Traefik começa a rotear |
+| `olho-publico_etl` | ⚠️ restart loop até `TRANSPARENCIA_API_KEY` ser preenchida (normal) |
+| `olho-publico_postgres-backup` | ✅ running, log `[backup] R2 não configurado — pulando` até R2 ser configurado |
 
 ## Atualizar a stack
 
-- **GitOps ligado:** push pra `main` no GitHub → Portainer detecta em até 5 min → faz pull + recreate dos containers afetados
-- **Manual:** Portainer → Stacks → `olho-publico` → **Pull and redeploy**
+**GitOps ligado:** push pra `main` no GitHub → Portainer detecta em até 5 min → faz pull das imagens novas e recreate dos containers afetados.
 
-## Logs
+**Manual:** Portainer → Stacks → `olho-publico` → **Pull and redeploy** (botão).
 
-- Portainer → Containers → clique no container → **Logs** (ou aba **Stats** para CPU/RAM)
-- Para o `web`: hits do Next.js, erros 500, etc.
-- Para o `etl`: status dos jobs (vazio até P2)
+## Logs e troubleshooting
 
-## Limpar tudo
+| Problema | Diagnóstico |
+|---|---|
+| Site não carrega no domínio | DNS apontou? Traefik enxerga as labels? `docker service ls` deve mostrar `olho-publico_web` com 1/1 réplicas |
+| Erro 502 Bad Gateway | Container `web` ainda subindo, ou healthcheck falhando. Ver logs do web. |
+| Postgres healthy mas web em loop | Variável `DATABASE_URL` errada? Conferir `POSTGRES_USER`/`POSTGRES_PASSWORD` |
+| ETL fica reiniciando | Esperado se `TRANSPARENCIA_API_KEY` estiver vazia |
+| Imagem não pulla | GHCR ainda privado? Ver Passo 2 |
 
-Portainer → Stacks → `olho-publico` → **Delete this stack** → marque "Remove non-persistent volumes". Postgres e backups ficam preservados se não marcar.
+## Limpeza
 
----
-
-## Trocar para Vercel depois (sem perder Portainer)
-
-Se mais tarde você quiser mover o site pro Vercel (CDN global, ISR), basta:
-
-1. Conectar o repo no Vercel apontando pra `apps/web`
-2. Variáveis: `DATABASE_URL` e `NEXT_PUBLIC_SITE_URL`
-3. Apontar o domínio pro Vercel em vez da VPS
-4. Comentar o serviço `web` no `docker-compose.prod.yml` (mantém só Postgres + ETL na VPS)
-
-Os dois fluxos coexistem — o Dockerfile não estorva o Vercel.
+Portainer → Stacks → `olho-publico` → **Remove**. O volume `olho_publico_postgres` é externo e fica preservado (apague manualmente com `docker volume rm olho_publico_postgres` se quiser).
