@@ -20,6 +20,7 @@ from olho_publico_etl.config import Settings, get_settings, require_settings
 from olho_publico_etl.jobs.sync_compliance import sync_compliance
 from olho_publico_etl.jobs.sync_ibge import run as run_sync_ibge
 from olho_publico_etl.jobs.sync_programas_sociais import run_multiplas_cidades_sociais
+from olho_publico_etl.jobs.sync_renuncias import sync_renuncias_ultimos_anos
 from olho_publico_etl.jobs.sync_transferencias import run_multiplas_cidades
 
 JOB_INTERVAL_SECONDS = 6 * 3600  # 6h
@@ -78,9 +79,21 @@ def _run_periodic_jobs(settings: Settings) -> None:
     # 3) Compliance (CEIS, CNEP, PEP — datasets nacionais, sync completo)
     try:
         result = sync_compliance(settings)
-        _log(f"sync compliance — CEIS={result['ceis']} CNEP={result['cnep']} PEP={result['pep']}")
+        _log(
+            f"sync compliance — CEIS={result['ceis']} CNEP={result['cnep']} "
+            f"CEPIM={result['cepim']} LENIENCIA={result['leniencia']} PEP={result['pep']}"
+        )
     except Exception as e:  # noqa: BLE001
         _log(f"sync compliance FALHOU: {e}")
+        traceback.print_exc()
+
+    # 4) Renúncias fiscais (dados anuais nacionais — só log por enquanto)
+    try:
+        renuncias = sync_renuncias_ultimos_anos(settings)
+        for ano, (qtd, total) in renuncias.items():
+            _log(f"sync renuncias {ano} — {qtd} registros (R${total:,.2f})")
+    except Exception as e:  # noqa: BLE001
+        _log(f"sync renuncias FALHOU: {e}")
         traceback.print_exc()
 
 

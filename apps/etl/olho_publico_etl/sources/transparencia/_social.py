@@ -7,7 +7,16 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-ProgramaCodigo = Literal["bolsa_familia", "auxilio_brasil", "seguro_defeso"]
+ProgramaCodigo = Literal[
+    "bolsa_familia",
+    "novo_bolsa_familia",
+    "auxilio_brasil",
+    "seguro_defeso",
+    "auxilio_emergencial",
+    "bpc",
+    "safra",
+    "peti",
+]
 
 
 class ProgramaSocialMes(BaseModel):

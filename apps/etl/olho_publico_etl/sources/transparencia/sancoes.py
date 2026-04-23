@@ -1,7 +1,9 @@
-"""Sanções administrativas — CEIS e CNEP.
+"""Sanções administrativas — CEIS, CNEP, CEPIM, Acordos de Leniência.
 
 CEIS: Cadastro Empresas Inidôneas e Suspensas
 CNEP: Cadastro Nacional Empresas Punidas (Lei Anticorrupção)
+CEPIM: Cadastro Empresas Impedidas (não podem receber repasse federal)
+Leniência: Acordos de delação premiada empresarial
 """
 
 from __future__ import annotations
@@ -16,6 +18,8 @@ from .client import TransparenciaClient
 
 ENDPOINT_CEIS = "/api-de-dados/ceis"
 ENDPOINT_CNEP = "/api-de-dados/cnep"
+ENDPOINT_CEPIM = "/api-de-dados/cepim"
+ENDPOINT_LENIENCIA = "/api-de-dados/acordos-leniencia"
 MAX_PAGE_SIZE = 15
 
 
@@ -69,6 +73,36 @@ async def fetch_cnep(client: TransparenciaClient) -> AsyncIterator[Sancao]:
         if not isinstance(data, list) or not data:
             return
         for s in parse_sancoes_payload(data, "CNEP"):
+            yield s
+        if len(data) < MAX_PAGE_SIZE:
+            return
+        pagina += 1
+
+
+async def fetch_cepim(client: TransparenciaClient) -> AsyncIterator[Sancao]:
+    """Empresas impedidas de receber repasse federal."""
+    pagina = 1
+    while True:
+        params = {"pagina": pagina}
+        data = await client.get(ENDPOINT_CEPIM, params=params)
+        if not isinstance(data, list) or not data:
+            return
+        for s in parse_sancoes_payload(data, "CEPIM"):
+            yield s
+        if len(data) < MAX_PAGE_SIZE:
+            return
+        pagina += 1
+
+
+async def fetch_leniencia(client: TransparenciaClient) -> AsyncIterator[Sancao]:
+    """Acordos de Leniência (delação empresarial)."""
+    pagina = 1
+    while True:
+        params = {"pagina": pagina}
+        data = await client.get(ENDPOINT_LENIENCIA, params=params)
+        if not isinstance(data, list) or not data:
+            return
+        for s in parse_sancoes_payload(data, "LENIENCIA"):
             yield s
         if len(data) < MAX_PAGE_SIZE:
             return

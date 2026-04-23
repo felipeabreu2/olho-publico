@@ -21,9 +21,15 @@ from olho_publico_etl.sources.transparencia.cartao import fetch_cartao_municipio
 from olho_publico_etl.sources.transparencia.client import TransparenciaClient
 from olho_publico_etl.sources.transparencia.contratos import fetch_contratos_municipio
 from olho_publico_etl.sources.transparencia.convenios import fetch_convenios_municipio
+from olho_publico_etl.sources.transparencia.coronavirus import (
+    fetch_coronavirus_municipio,
+)
 from olho_publico_etl.sources.transparencia.emendas import fetch_emendas_municipio
 from olho_publico_etl.sources.transparencia.empenhos import fetch_empenhos_municipio
 from olho_publico_etl.sources.transparencia.licitacoes import fetch_licitacoes_municipio
+from olho_publico_etl.sources.transparencia.recursos_recebidos import (
+    fetch_recursos_municipio,
+)
 from olho_publico_etl.sources.transparencia.transferencias import (
     fetch_transferencias_municipio,
 )
@@ -33,19 +39,21 @@ from olho_publico_etl.storage.r2 import make_r2_client, upload_bytes
 from .recompute_agregacoes import recompute_agregacoes_municipio
 
 # Sources que populam `contratos`. Cada uma é fail-soft.
-#
-# DESATIVADAS (exigem codigoOrgao obrigatório — impraticável filtrar
-# por município sem iterar todos os ~500 órgãos federais):
-#   /contratos, /licitacoes, /viagens, /cartao (parcial)
-#
-# REQUEREM Gov.br Ouro: /transferencias, /despesas/empenhos, /cartoes
-# (vão dar 403 com chave básica — tratado fail-soft pelo loop).
 SOURCES = [
-    ("convenios", fetch_convenios_municipio),  # ✓ funciona com básica
+    ("convenios", fetch_convenios_municipio),
     ("transferencias", fetch_transferencias_municipio),  # requer Gov.br Ouro
-    ("emendas", fetch_emendas_municipio),  # ✓ funciona
+    ("emendas", fetch_emendas_municipio),
     ("empenhos", fetch_empenhos_municipio),  # requer Gov.br Ouro
+    ("coronavirus", fetch_coronavirus_municipio),  # transferências COVID
+    ("recursos_recebidos", fetch_recursos_municipio),  # alternativa a /transferencias
 ]
+# Imports preservados (exigem codigoOrgao, fora do sync municipal):
+_UNUSED_BY_DESIGN = (
+    fetch_contratos_municipio,
+    fetch_licitacoes_municipio,
+    fetch_cartao_municipio,
+    fetch_viagens_municipio,
+)
 # Imports preservados para uso futuro (job dedicado por órgão):
 _UNUSED_BY_DESIGN = (
     fetch_contratos_municipio,

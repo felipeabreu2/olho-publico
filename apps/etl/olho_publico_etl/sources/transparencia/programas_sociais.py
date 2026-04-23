@@ -16,8 +16,13 @@ from .client import TransparenciaClient
 
 ENDPOINTS = {
     "bolsa_familia": "/api-de-dados/bolsa-familia-por-municipio",
-    "auxilio_brasil": "/api-de-dados/novo-bolsa-familia-por-municipio",
+    "novo_bolsa_familia": "/api-de-dados/novo-bolsa-familia-por-municipio",
+    "auxilio_brasil": "/api-de-dados/auxilio-brasil-por-municipio",
     "seguro_defeso": "/api-de-dados/seguro-defeso-por-municipio",
+    "auxilio_emergencial": "/api-de-dados/auxilio-emergencial-por-municipio",
+    "bpc": "/api-de-dados/bpc-por-municipio",
+    "safra": "/api-de-dados/safra-por-municipio",
+    "peti": "/api-de-dados/peti-por-municipio",
 }
 MAX_PAGE_SIZE = 15
 
