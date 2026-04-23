@@ -35,3 +35,4 @@ data/
 
 # Brainstorm/superpowers state
 .superpowers/
+.claude/
