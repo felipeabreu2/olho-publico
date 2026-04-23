@@ -28,7 +28,8 @@ jobs:
       - run: pnpm --filter @olho/shared test
       - run: pnpm --filter @olho/db typecheck
       - run: pnpm --filter web typecheck
-      - run: pnpm --filter web lint
+      # lint desativado: next lint deprecou no Next 15 e ficou interativo;
+      # quando migrarmos pra eslint flat config, voltar com `pnpm --filter web lint`.
       - run: pnpm --filter web build
         env:
           NEXT_PUBLIC_SITE_URL: https://olhopublico.org
