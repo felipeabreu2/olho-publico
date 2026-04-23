@@ -5,9 +5,11 @@ on:
     branches: [main]
     paths:
       - "apps/etl/**"
+      - ".github/workflows/etl-ci.yml"
   pull_request:
     paths:
       - "apps/etl/**"
+  workflow_dispatch:
 
 jobs:
   test:
