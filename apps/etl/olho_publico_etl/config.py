@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     transparencia_api_key: str = ""
     # 400 = limite diurno padrão da CGU. 700 entre 00h-06h. 180 para APIs restritas.
     transparencia_rate_per_minute: int = 400
+    # Override da base URL para rotear via proxy (ex.: Cloudflare Worker) quando
+    # o VPS está fora do Brasil — CGU bloqueia IPs não-BR via CloudFront.
+    transparencia_base_url: str = "https://api.portaldatransparencia.gov.br"
 
     # Lista CSV de IDs IBGE para sync periódico (ex: "3550308,3304557")
     ibge_sync_list: str = "3550308"

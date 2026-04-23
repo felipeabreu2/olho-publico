@@ -20,6 +20,9 @@ from tenacity import (
 
 from .rate_limit import TokenBucket
 
+# Base pode ser overridden via env TRANSPARENCIA_BASE_URL — útil para rotear
+# por um proxy quando o VPS de origem não está no Brasil (CGU bloqueia IPs
+# não-BR via edges CloudFront europeus, retornando 403 com body vazio).
 BASE_URL = "https://api.portaldatransparencia.gov.br"
 # Limite oficial CGU: 400 req/min em horário comercial, 700 entre 00h-06h.
 # Usamos 400 como padrão seguro 24/7. APIs restritas (auxílio, bolsa família por

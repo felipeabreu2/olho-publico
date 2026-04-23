@@ -20,9 +20,16 @@ from .recompute_agregacoes import recompute_agregacoes_municipio
 
 
 async def _collect_contratos(
-    api_key: str, codigo_ibge: str, ano_mes: str, *, rate_per_minute: int
+    api_key: str,
+    codigo_ibge: str,
+    ano_mes: str,
+    *,
+    rate_per_minute: int,
+    base_url: str,
 ) -> list:
-    async with TransparenciaClient(api_key=api_key, rate_per_minute=rate_per_minute) as c:
+    async with TransparenciaClient(
+        api_key=api_key, rate_per_minute=rate_per_minute, base_url=base_url
+    ) as c:
         out = []
         async for contrato in fetch_transferencias_municipio(
             c, codigo_ibge=codigo_ibge, ano_mes=ano_mes
@@ -42,6 +49,7 @@ def sync_transferencias_mes(settings: Settings, codigo_ibge: str, ano_mes: str) 
             codigo_ibge,
             ano_mes,
             rate_per_minute=settings.transparencia_rate_per_minute,
+            base_url=settings.transparencia_base_url,
         )
     )
     if not contratos:
