@@ -2,7 +2,7 @@
 
 Real implementation in plan P3.
 """
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Empresa, Socio
 from olho_publico_etl.sources.base import Source

@@ -3,7 +3,7 @@
 Each subclass implements one ERP (E&L, IPM, Betha, Equiplano).
 """
 from abc import abstractmethod
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Contrato
 from olho_publico_etl.sources.base import Source

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 

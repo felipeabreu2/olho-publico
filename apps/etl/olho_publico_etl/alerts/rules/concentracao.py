@@ -1,5 +1,5 @@
 """CONCENTRACAO: mesma empresa = >40% dos contratos de uma secretaria."""
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 

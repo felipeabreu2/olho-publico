@@ -1,5 +1,5 @@
 """Alert engine — runs all rules and persists alerts into Postgres."""
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 

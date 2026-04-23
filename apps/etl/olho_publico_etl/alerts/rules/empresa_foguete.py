@@ -1,5 +1,5 @@
 """EMPRESA_FOGUETE: CNPJ aberto há <12 meses recebeu contrato > R$ 500k."""
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 

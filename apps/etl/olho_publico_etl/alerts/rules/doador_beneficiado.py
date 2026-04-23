@@ -1,5 +1,5 @@
 """DOADOR_BENEFICIADO: empresa que doou para campanha do prefeito recebeu contrato após eleição."""
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 

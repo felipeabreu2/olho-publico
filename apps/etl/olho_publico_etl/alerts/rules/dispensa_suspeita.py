@@ -1,5 +1,5 @@
 """DISPENSA_SUSPEITA: contrato sem licitação acima de R$ 1M."""
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 

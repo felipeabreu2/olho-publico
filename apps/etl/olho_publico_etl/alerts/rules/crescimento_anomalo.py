@@ -1,5 +1,5 @@
 """CRESCIMENTO_ANOMALO: empresa cujo faturamento público cresceu >300% ano a ano."""
-from typing import Iterator
+from collections.abc import Iterator
 
 from olho_publico_etl.models import Alerta
 
