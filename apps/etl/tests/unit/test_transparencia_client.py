@@ -32,7 +32,7 @@ async def test_client_desserializa_json():
         async with TransparenciaClient(api_key="k") as c:
             data = await c.get("/api-de-dados/transferencias")
         assert len(data) == 2
-        assert data[0]["municipio"]["codigoIBGE"] == "3550308"
+        assert data[0]["municipioConvenente"]["codigoIBGE"] == "3550308"
 
 
 @pytest.mark.asyncio

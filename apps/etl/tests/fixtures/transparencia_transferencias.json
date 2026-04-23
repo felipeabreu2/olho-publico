@@ -1,36 +1,52 @@
 [
   {
-    "id": 123456,
-    "mesAno": "2025-01",
+    "id": 340904146,
+    "dataPublicacao": "2026-01-15",
     "valor": 1234567.89,
-    "favorecido": {
+    "valorLiberado": 1234567.89,
+    "convenente": {
+      "cnpjFormatado": "12.345.678/0001-90",
       "nome": "PREFEITURA MUNICIPAL DE SAO PAULO",
-      "codigoFormatado": "12.345.678/0001-90"
+      "razaoSocialReceita": "MUNICIPIO DE SAO PAULO"
     },
-    "municipio": {
+    "municipioConvenente": {
       "codigoIBGE": "3550308",
-      "nomeIBGE": "São Paulo",
+      "nomeIBGE": "SAO PAULO",
       "uf": {"sigla": "SP"}
     },
-    "programa": {"codigo": "0089", "descricao": "Assistência Farmacêutica"},
-    "acaoOrcamentaria": {"descricao": "Transferência SUS"},
-    "linguagemCidada": "Repasse federal para saúde básica"
+    "dimConvenio": {
+      "codigo": "789012",
+      "objeto": "Apoio à atenção básica em saúde — repasse SUS"
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde",
+      "codigoSIAFI": "36000",
+      "sigla": "MS"
+    },
+    "tipoInstrumento": {"descricao": "TRANSFERENCIA LEGAL"}
   },
   {
-    "id": 123457,
-    "mesAno": "2025-01",
+    "id": 340904147,
+    "dataPublicacao": "2026-02-20",
     "valor": 500000.00,
-    "favorecido": {
-      "nome": "PREFEITURA MUNICIPAL DE SAO PAULO",
-      "codigoFormatado": "12.345.678/0001-90"
+    "valorLiberado": 250000.00,
+    "convenente": {
+      "cnpjFormatado": "12.345.678/0001-90",
+      "nome": "PREFEITURA MUNICIPAL DE SAO PAULO"
     },
-    "municipio": {
+    "municipioConvenente": {
       "codigoIBGE": "3550308",
-      "nomeIBGE": "São Paulo",
+      "nomeIBGE": "SAO PAULO",
       "uf": {"sigla": "SP"}
     },
-    "programa": {"codigo": "1234", "descricao": "FUNDEB"},
-    "acaoOrcamentaria": {"descricao": "FUNDEB complementar"},
-    "linguagemCidada": "Complementação federal ao FUNDEB"
+    "dimConvenio": {
+      "codigo": "789013",
+      "objeto": "FUNDEB complementar"
+    },
+    "orgao": {
+      "nome": "Ministério da Educação",
+      "sigla": "MEC"
+    },
+    "tipoInstrumento": {"descricao": "CONVENIO"}
   }
 ]

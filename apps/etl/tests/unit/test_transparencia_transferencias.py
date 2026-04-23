@@ -13,16 +13,31 @@ def test_parse_gera_contratos_com_fonte_e_cnpj_limpo():
 
     r = rows[0]
     assert r.fonte == "portal_transparencia"
-    assert r.cnpj_fornecedor == "12345678000190"  # sem pontuação
+    assert r.cnpj_fornecedor == "12345678000190"
     assert r.municipio_aplicacao_id == "3550308"
-    assert r.orgao_contratante == "Governo Federal"
+    assert r.orgao_contratante == "Ministério da Saúde"
     assert str(r.valor) == "1234567.89"
-    assert "Assistência Farmacêutica" in r.objeto
+    assert "atenção básica" in r.objeto
 
 
 def test_parse_ignora_registros_sem_cnpj():
-    bad = [{"id": 1, "mesAno": "2025-01", "valor": 100,
-            "favorecido": {"nome": "X", "codigoFormatado": ""},
-            "municipio": {"codigoIBGE": "3550308"},
-            "programa": {"descricao": "p"}, "acaoOrcamentaria": {"descricao": "a"}}]
+    bad = [{
+        "id": 1, "valor": 100,
+        "convenente": {"cnpjFormatado": ""},
+        "municipioConvenente": {"codigoIBGE": "3550308"},
+        "dimConvenio": {"objeto": "p"}, "orgao": {"nome": "x"},
+        "dataPublicacao": "2026-01-01",
+    }]
     assert list(parse_transferencias_payload(bad)) == []
+
+
+def test_parse_ignora_registros_com_valor_zero():
+    """Convenios às vezes têm valor=0 (placeholder); pular pra não poluir agregações."""
+    zero = [{
+        "id": 1, "valor": 0,
+        "convenente": {"cnpjFormatado": "12.345.678/0001-90"},
+        "municipioConvenente": {"codigoIBGE": "3550308"},
+        "dimConvenio": {"objeto": "x"}, "orgao": {"nome": "y"},
+        "dataPublicacao": "2026-01-01",
+    }]
+    assert list(parse_transferencias_payload(zero)) == []
