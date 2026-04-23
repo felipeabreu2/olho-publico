@@ -1,0 +1,36 @@
+[
+  {
+    "id": 123456,
+    "mesAno": "2025-01",
+    "valor": 1234567.89,
+    "favorecido": {
+      "nome": "PREFEITURA MUNICIPAL DE SAO PAULO",
+      "codigoFormatado": "12.345.678/0001-90"
+    },
+    "municipio": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "São Paulo",
+      "uf": {"sigla": "SP"}
+    },
+    "programa": {"codigo": "0089", "descricao": "Assistência Farmacêutica"},
+    "acaoOrcamentaria": {"descricao": "Transferência SUS"},
+    "linguagemCidada": "Repasse federal para saúde básica"
+  },
+  {
+    "id": 123457,
+    "mesAno": "2025-01",
+    "valor": 500000.00,
+    "favorecido": {
+      "nome": "PREFEITURA MUNICIPAL DE SAO PAULO",
+      "codigoFormatado": "12.345.678/0001-90"
+    },
+    "municipio": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "São Paulo",
+      "uf": {"sigla": "SP"}
+    },
+    "programa": {"codigo": "1234", "descricao": "FUNDEB"},
+    "acaoOrcamentaria": {"descricao": "FUNDEB complementar"},
+    "linguagemCidada": "Complementação federal ao FUNDEB"
+  }
+]

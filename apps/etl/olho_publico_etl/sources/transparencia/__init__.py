@@ -1,5 +1,5 @@
 """Portal da Transparência (CGU) — federal contracts and transfers."""
 
-from .client import TransparenciaSource
+from .client import TransparenciaClient
 
-__all__ = ["TransparenciaSource"]
+__all__ = ["TransparenciaClient"]

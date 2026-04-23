@@ -17,9 +17,22 @@ class Settings(BaseSettings):
 
     transparencia_api_key: str = ""
 
+    # Lista CSV de IDs IBGE para sync periódico (ex: "3550308,3304557")
+    ibge_sync_list: str = "3550308"
+
     log_level: str = "INFO"
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def require_settings(*fields: str) -> None:
+    """Raise RuntimeError se qualquer campo listado estiver vazio."""
+    s = get_settings()
+    missing = [f for f in fields if not getattr(s, f, None)]
+    if missing:
+        raise RuntimeError(
+            f"Variáveis de ambiente obrigatórias ausentes: {', '.join(missing)}"
+        )
