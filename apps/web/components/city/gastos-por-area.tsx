@@ -1,5 +1,5 @@
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatBRLCompact } from "@olho/shared";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DonutChart } from "@/components/charts/donut-chart";
 
 interface GastoArea {
   area: string;
@@ -8,28 +8,18 @@ interface GastoArea {
 }
 
 export function GastosPorArea({ items }: { items: GastoArea[] }) {
+  const data = items.map((g) => ({
+    label: g.area,
+    value: parseFloat(g.valor),
+  }));
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Gastos por área</CardTitle>
+        <CardDescription>Distribuição percentual do orçamento</CardDescription>
       </CardHeader>
-      <ul className="space-y-3">
-        {items.map((g) => (
-          <li key={g.area}>
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="text-fg">{g.area}</span>
-              <span className="font-mono text-fg-muted">{formatBRLCompact(g.valor)}</span>
-            </div>
-            <div className="h-2 rounded-full bg-bg-elevated overflow-hidden">
-              <div
-                className="h-full bg-fg/80"
-                style={{ width: `${g.percentual}%` }}
-                aria-label={`${g.percentual}%`}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
+      <DonutChart data={data} height={240} />
     </Card>
   );
 }
