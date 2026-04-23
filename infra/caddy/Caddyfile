@@ -2,19 +2,44 @@
   email contato@olhopublico.org
 }
 
-# Postgres exposto via TLS para Vercel — IP allow-list configurada no firewall do provedor
-postgres.olhopublico.org:5433 {
-  reverse_proxy postgres:5432 {
-    transport http {
-      versions h2c
-    }
-  }
+# ───────────────────────────────────────────────────────────────────
+# Site público — Next.js (container web na porta 3000)
+# ───────────────────────────────────────────────────────────────────
+#
+# Antes de ter domínio: preview por IP da VPS via :80
+# Depois de configurar DNS: comente :80 e descomente o bloco do domínio
+# ───────────────────────────────────────────────────────────────────
+
+# Preview por IP (sem domínio ainda) — http://IP_DA_VPS
+:80 {
+  encode zstd gzip
+  reverse_proxy web:3000
 }
 
-# Painel Dagster (futuro), proteção via basic auth
-dagster.olhopublico.org {
-  basic_auth {
-    admin {{ DAGSTER_PASSWORD_HASH }}
-  }
-  reverse_proxy dagster:3000
-}
+# Quando tiver domínio, descomente e comente o :80 acima:
+#
+# olhopublico.org, www.olhopublico.org {
+#   encode zstd gzip
+#
+#   @static path /_next/static/* /favicon.ico
+#   header @static Cache-Control "public, max-age=31536000, immutable"
+#
+#   reverse_proxy web:3000 {
+#     header_up Host {host}
+#     header_up X-Real-IP {remote_host}
+#     header_up X-Forwarded-For {remote_host}
+#     header_up X-Forwarded-Proto {scheme}
+#   }
+# }
+
+# ───────────────────────────────────────────────────────────────────
+# Postgres exposto via TLS quando precisar (futuro Vercel ou clientes)
+# ───────────────────────────────────────────────────────────────────
+
+# postgres.olhopublico.org:5433 {
+#   reverse_proxy postgres:5432 {
+#     transport http {
+#       versions h2c
+#     }
+#   }
+# }
