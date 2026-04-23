@@ -15,7 +15,7 @@ export const empresas = pgTable(
     atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
-    razaoSocialIdx: index("idx_empresas_razao_social_trgm").using("gin", t.razaoSocial),
+    razaoSocialIdx: index("idx_empresas_razao_social_trgm").using("gin", t.razaoSocial.op("gin_trgm_ops")),
     flagsIdx: index("idx_empresas_flags").using("gin", t.flags),
     sedeIdx: index("idx_empresas_sede").on(t.municipioSedeId),
   })

@@ -24,7 +24,7 @@ export const municipios = pgTable(
   },
   (t) => ({
     ufIdx: index("idx_municipios_uf").on(t.uf),
-    nomeIdx: index("idx_municipios_nome_trgm").using("gin", t.nome),
+    nomeIdx: index("idx_municipios_nome_trgm").using("gin", t.nome.op("gin_trgm_ops")),
   })
 );
 

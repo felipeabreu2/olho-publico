@@ -28,7 +28,7 @@ export const contratos = pgTable(
   (t) => ({
     municipioDataIdx: index("idx_contratos_municipio_data").on(t.municipioAplicacaoId, t.dataAssinatura),
     fornecedorIdx: index("idx_contratos_fornecedor").on(t.cnpjFornecedor),
-    objetoFtsIdx: index("idx_contratos_objeto_fts").using("gin", t.objeto),
+    objetoFtsIdx: index("idx_contratos_objeto_fts").using("gin", t.objeto.op("gin_trgm_ops")),
   })
 );
 

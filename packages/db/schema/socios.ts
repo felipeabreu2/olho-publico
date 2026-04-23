@@ -13,7 +13,7 @@ export const socios = pgTable(
   },
   (t) => ({
     cnpjIdx: index("idx_socios_cnpj").on(t.cnpj),
-    nomeIdx: index("idx_socios_nome_trgm").using("gin", t.nome),
+    nomeIdx: index("idx_socios_nome_trgm").using("gin", t.nome.op("gin_trgm_ops")),
   })
 );
 
