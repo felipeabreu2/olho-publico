@@ -1,43 +1,44 @@
-import json
-from pathlib import Path
-
-from olho_publico_etl.sources.transparencia.transferencias import parse_transferencias_payload
-
-FIXTURE = Path(__file__).parent.parent / "fixtures" / "transparencia_transferencias.json"
+from olho_publico_etl.sources.transparencia.transferencias import (
+    parse_transferencias_payload,
+)
 
 
-def test_parse_gera_contratos_com_fonte_e_cnpj_limpo():
-    payload = json.loads(FIXTURE.read_text())
+def test_parse_basico():
+    payload = [{
+        "valor": 1500000.00,
+        "mesAno": "2026-04",
+        "favorecido": {
+            "nome": "PREFEITURA MUNICIPAL DE SÃO PAULO",
+            "codigoFormatado": "12.345.678/0001-90",
+        },
+        "municipio": {"codigoIBGE": "3550308"},
+        "programa": {"descricao": "Programa Saúde da Família"},
+        "acaoOrcamentaria": {"descricao": "Atenção Básica"},
+        "linguagemCidada": "Repasse SUS",
+    }]
     rows = list(parse_transferencias_payload(payload))
-    assert len(rows) == 2
-
+    assert len(rows) == 1
     r = rows[0]
-    assert r.fonte == "portal_transparencia"
     assert r.cnpj_fornecedor == "12345678000190"
     assert r.municipio_aplicacao_id == "3550308"
-    assert r.orgao_contratante == "Ministério da Saúde"
-    assert str(r.valor) == "1234567.89"
-    assert "atenção básica" in r.objeto
+    assert "[TRANSFERÊNCIA]" in r.objeto
+    assert "Programa Saúde da Família" in r.objeto
+    assert float(r.valor) == 1500000.0
+    assert r.data_assinatura.year == 2026
+    assert r.data_assinatura.month == 4
 
 
-def test_parse_ignora_registros_sem_cnpj():
-    bad = [{
-        "id": 1, "valor": 100,
-        "convenente": {"cnpjFormatado": ""},
-        "municipioConvenente": {"codigoIBGE": "3550308"},
-        "dimConvenio": {"objeto": "p"}, "orgao": {"nome": "x"},
-        "dataPublicacao": "2026-01-01",
-    }]
-    assert list(parse_transferencias_payload(bad)) == []
+def test_parse_pula_sem_cnpj():
+    assert list(parse_transferencias_payload([{
+        "valor": 100, "mesAno": "2026-01",
+        "favorecido": {"codigoFormatado": ""},
+        "municipio": {"codigoIBGE": "3550308"},
+    }])) == []
 
 
-def test_parse_ignora_registros_com_valor_zero():
-    """Convenios às vezes têm valor=0 (placeholder); pular pra não poluir agregações."""
-    zero = [{
-        "id": 1, "valor": 0,
-        "convenente": {"cnpjFormatado": "12.345.678/0001-90"},
-        "municipioConvenente": {"codigoIBGE": "3550308"},
-        "dimConvenio": {"objeto": "x"}, "orgao": {"nome": "y"},
-        "dataPublicacao": "2026-01-01",
-    }]
-    assert list(parse_transferencias_payload(zero)) == []
+def test_parse_pula_sem_municipio():
+    assert list(parse_transferencias_payload([{
+        "valor": 100, "mesAno": "2026-01",
+        "favorecido": {"codigoFormatado": "12.345.678/0001-90"},
+        "municipio": {},
+    }])) == []

@@ -7,7 +7,7 @@ import respx
 
 from olho_publico_etl.sources.transparencia.client import TransparenciaClient
 
-FIXTURE = Path(__file__).parent.parent / "fixtures" / "transparencia_transferencias.json"
+FIXTURE = Path(__file__).parent.parent / "fixtures" / "transparencia_convenios.json"
 
 
 @pytest.mark.asyncio

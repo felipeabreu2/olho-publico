@@ -1,15 +1,7 @@
-"""Ingestão de dinheiro federal que vai para municípios via Portal da Transparência (CGU).
+"""Transferências federais mensais — /api-de-dados/transferencias.
 
-NOTA SOBRE ENDPOINT: idealmente usaríamos /api-de-dados/transferencias (repasses
-mensais SUS, FUNDEB, etc.), mas esse endpoint exige chave gerada via Gov.br
-Prata ou Ouro. Chaves geradas via CPF+2FA básico recebem 403 nesse endpoint.
-
-Por enquanto, usamos /api-de-dados/convenios (parcerias federais) que cobre
-boa parte do dinheiro federal a municípios e está acessível à chave básica.
-Quando upgradar a chave, basta adicionar fetch para o endpoint /transferencias
-em paralelo (ou criar transferencias_brutas.py).
-
-Fonte gravada: 'portal_transparencia' (genérica) — em V2 separamos os tipos.
+Repasses diretos a municípios: SUS, FUNDEB, Auxílio Brasil, etc.
+EXIGE chave gerada via Gov.br Prata/Ouro.
 """
 
 from __future__ import annotations
@@ -23,54 +15,57 @@ from olho_publico_etl.models import Contrato
 
 from .client import TransparenciaClient
 
-ENDPOINT = "/api-de-dados/convenios"
-MAX_PAGE_SIZE = 15  # convenios retorna 15 por página (não 500)
+ENDPOINT = "/api-de-dados/transferencias"
+MAX_PAGE_SIZE = 500
 
 
-def _clean_cnpj(cnpj_formatted: str) -> str | None:
+def _clean_cnpj(cnpj_formatted: str | None) -> str | None:
+    if not cnpj_formatted:
+        return None
     digits = "".join(c for c in cnpj_formatted if c.isdigit())
     return digits if len(digits) == 14 else None
 
 
-def _ano_mes_to_intervalo(ano_mes: str) -> tuple[str, str]:
-    """'2026-04' → ('01/04/2026', '30/04/2026'). Convenios exige DD/MM/YYYY."""
-    ano, mes = ano_mes.split("-")
-    return (f"01/{mes}/{ano}", f"28/{mes}/{ano}")  # 28 cobre fev sem cálculo de fim de mês
+def _ano_mes_to_ymd(ano_mes: str) -> str:
+    """'2026-04' → '202604' (formato AAAAMM exigido pela API)."""
+    return ano_mes.replace("-", "")
 
 
-def _parse_data_publicacao(s: str | None) -> date:
-    """Aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY'."""
+def _parse_mes_ano(s: str | None) -> date:
+    """'2026-04' ou '04/2026' → date(2026, 4, 1)."""
     if not s:
         return date.today()
     if "-" in s:
-        return date.fromisoformat(s)
-    d, m, y = s.split("/")
-    return date(int(y), int(m), int(d))
+        y, m = s.split("-")
+        return date(int(y), int(m), 1)
+    if "/" in s:
+        m, y = s.split("/")
+        return date(int(y), int(m), 1)
+    return date.today()
 
 
 def parse_transferencias_payload(payload: list[dict[str, Any]]) -> Iterator[Contrato]:
-    """Converte resposta de /convenios em Contrato.
-
-    Mantém o nome `parse_transferencias_payload` por compatibilidade com tests
-    e jobs existentes — fonte interna passa a ser convenios federais.
-    """
+    """Converte resposta de /transferencias em Contrato."""
     for item in payload:
-        convenente = item.get("convenente") or {}
-        cnpj = _clean_cnpj(convenente.get("cnpjFormatado") or "")
+        favorecido = item.get("favorecido") or {}
+        cnpj = _clean_cnpj(
+            favorecido.get("codigoFormatado") or favorecido.get("cpfCnpj")
+        )
         if not cnpj:
             continue
 
-        municipio = item.get("municipioConvenente") or {}
+        municipio = item.get("municipio") or {}
         municipio_id = municipio.get("codigoIBGE") or None
+        if not municipio_id:
+            continue
 
-        dim = item.get("dimConvenio") or {}
-        objeto = (dim.get("objeto") or "Convênio federal").strip()
+        programa = (item.get("programa") or {}).get("descricao", "")
+        acao = (item.get("acaoOrcamentaria") or {}).get("descricao", "")
+        linguagem = item.get("linguagemCidada") or ""
+        objeto_base = (f"{programa} — {acao}".strip(" —") or linguagem or "Transferência federal")
+        objeto = f"[TRANSFERÊNCIA] {objeto_base}"
 
-        orgao = item.get("orgao") or {}
-        orgao_nome = orgao.get("nome") or "Governo Federal"
-
-        # Preferimos valor (valor total firmado); valorLiberado é o pago até hoje.
-        valor_str = str(item.get("valor") or item.get("valorLiberado") or "0")
+        valor_str = str(item.get("valor") or "0")
         valor = Decimal(valor_str)
         if valor <= 0:
             continue
@@ -78,40 +73,33 @@ def parse_transferencias_payload(payload: list[dict[str, Any]]) -> Iterator[Cont
         yield Contrato(
             municipio_aplicacao_id=municipio_id,
             cnpj_fornecedor=cnpj,
-            orgao_contratante=orgao_nome,
+            orgao_contratante="Governo Federal",
             objeto=objeto,
             valor=valor,
-            data_assinatura=_parse_data_publicacao(item.get("dataPublicacao")),
-            modalidade_licitacao=(item.get("tipoInstrumento") or {}).get("descricao"),
+            data_assinatura=_parse_mes_ano(item.get("mesAno")),
+            modalidade_licitacao=None,
             fonte="portal_transparencia",
             dados_originais_url=None,
         )
 
 
 async def fetch_transferencias_municipio(
-    client: TransparenciaClient,
-    *,
-    codigo_ibge: str,
-    ano_mes: str,
+    client: TransparenciaClient, *, codigo_ibge: str, ano_mes: str,
 ) -> AsyncIterator[Contrato]:
-    """Pagina /convenios para um município, mês a mês, até esgotar páginas.
-
-    A API CGU /convenios usa dataInicial + dataFinal em formato DD/MM/YYYY.
-    """
     pagina = 1
-    data_inicial, data_final = _ano_mes_to_intervalo(ano_mes)
+    mes_ano = _ano_mes_to_ymd(ano_mes)
     while True:
         params = {
-            "codigoIBGE": codigo_ibge,
-            "dataInicial": data_inicial,
-            "dataFinal": data_final,
+            "codigoIbge": codigo_ibge,
+            "mesAnoInicio": mes_ano,
+            "mesAnoFim": mes_ano,
             "pagina": pagina,
         }
         data = await client.get(ENDPOINT, params=params)
         if not isinstance(data, list) or not data:
             return
-        for contrato in parse_transferencias_payload(data):
-            yield contrato
+        for c in parse_transferencias_payload(data):
+            yield c
         if len(data) < MAX_PAGE_SIZE:
             return
         pagina += 1
