@@ -1,4 +1,4 @@
-import { pgTable, varchar, integer, text, real, timestamp, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, varchar, integer, text, real, timestamp, pgEnum, index, unique } from "drizzle-orm/pg-core";
 
 export const coberturaPrefeituraEnum = pgEnum("cobertura_prefeitura", [
   "nenhuma",
@@ -11,7 +11,9 @@ export const municipios = pgTable(
   {
     idIbge: varchar("id_ibge", { length: 7 }).primaryKey(),
     nome: text("nome").notNull(),
-    slug: varchar("slug", { length: 120 }).notNull().unique(),
+    // Não global-unique: Brasil tem cidades de mesmo nome em estados diferentes
+    // (ex: "Bom Jesus do Tocantins" em PA e TO). Unicidade real é (uf, slug).
+    slug: varchar("slug", { length: 120 }).notNull(),
     uf: varchar("uf", { length: 2 }).notNull(),
     populacao: integer("populacao"),
     idh: real("idh"),
@@ -25,6 +27,7 @@ export const municipios = pgTable(
   (t) => ({
     ufIdx: index("idx_municipios_uf").on(t.uf),
     nomeIdx: index("idx_municipios_nome_trgm").using("gin", t.nome.op("gin_trgm_ops")),
+    ufSlugUnique: unique("uq_municipios_uf_slug").on(t.uf, t.slug),
   })
 );
 

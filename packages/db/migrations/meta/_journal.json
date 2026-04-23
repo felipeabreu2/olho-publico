@@ -15,6 +15,13 @@
       "when": 1776952138545,
       "tag": "0001_bored_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776970013760,
+      "tag": "0002_clammy_sabra",
+      "breakpoints": true
     }
   ]
 }
