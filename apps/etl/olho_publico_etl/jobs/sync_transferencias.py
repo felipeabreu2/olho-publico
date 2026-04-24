@@ -7,6 +7,7 @@ em um endpoint específico.
 from __future__ import annotations
 
 import asyncio
+import time
 
 import httpx
 
@@ -84,19 +85,24 @@ async def _collect_all(
     *,
     rate_per_minute: int,
     base_url: str,
+    skip_sources: set[str] | None = None,
 ) -> tuple[list[Contrato], dict[str, int], dict[str, str]]:
     """Coleta de todas as sources em sequência.
 
     Retorna (contratos, contagem_por_source, erros_por_source).
     erros_por_source: rótulo curto (ex.: "403", "400", "ERR") para agregação.
+    skip_sources: sources que serão puladas (circuit breaker do caller).
     """
     contratos: list[Contrato] = []
     contagem: dict[str, int] = {}
     erros: dict[str, str] = {}
+    skip = skip_sources or set()
     async with TransparenciaClient(
         api_key=api_key, rate_per_minute=rate_per_minute, base_url=base_url
     ) as c:
         for nome, fetcher in SOURCES:
+            if nome in skip:
+                continue
             try:
                 rows = await _collect_from_source(c, fetcher, codigo_ibge, ano_mes)
                 contratos.extend(rows)
@@ -111,7 +117,11 @@ async def _collect_all(
 
 
 def sync_transferencias_mes(
-    settings: Settings, codigo_ibge: str, ano_mes: str
+    settings: Settings,
+    codigo_ibge: str,
+    ano_mes: str,
+    *,
+    skip_sources: set[str] | None = None,
 ) -> tuple[int, dict[str, str]]:
     """Sincroniza um município/mês: fetch → Bronze R2 → Gold Postgres → agregações.
 
@@ -124,6 +134,7 @@ def sync_transferencias_mes(
             ano_mes,
             rate_per_minute=settings.transparencia_rate_per_minute,
             base_url=settings.transparencia_base_url,
+            skip_sources=skip_sources,
         )
     )
     if not contratos:
@@ -167,6 +178,12 @@ def sync_transferencias_mes(
     return n, erros
 
 
+# Se uma source falha em N cidades consecutivas com 4xx, é problema permanente
+# (token sem permissão, endpoint exige codigoOrgao, etc.). Pulamos no resto do
+# ciclo para não desperdiçar rate limit.
+CIRCUIT_BREAKER_THRESHOLD = 30
+
+
 def run_multiplas_cidades(
     settings: Settings, ibge_ids: list[str], ano_mes: str
 ) -> tuple[dict[str, int], dict[str, int]]:
@@ -174,23 +191,46 @@ def run_multiplas_cidades(
 
     Retorna (contratos_por_cidade, erros_agregados_por_source).
     erros_agregados: nome_source -> n_cidades_que_falharam.
-    Loga progresso a cada 100 cidades em listas grandes.
     """
     contratos_por_cidade: dict[str, int] = {}
     erros_agg: dict[str, int] = {}
+    falhas_consec: dict[str, int] = {}
+    skipped: set[str] = set()
     total = len(ibge_ids)
-    log_every = 100 if total > 200 else max(total // 5, 1)
+    log_every = 100 if total > 500 else 50 if total > 100 else max(total // 5, 1)
+    started = time.monotonic()
 
     for i, ibge in enumerate(ibge_ids, start=1):
-        n, erros = sync_transferencias_mes(settings, ibge, ano_mes)
+        if i == 1:
+            _log.info("contratos", f"{ano_mes} iniciando — {total} cidade(s)")
+        n, erros = sync_transferencias_mes(settings, ibge, ano_mes, skip_sources=skipped)
         contratos_por_cidade[ibge] = n
         for src in erros:
             erros_agg[src] = erros_agg.get(src, 0) + 1
+            falhas_consec[src] = falhas_consec.get(src, 0) + 1
+            if (
+                falhas_consec[src] >= CIRCUIT_BREAKER_THRESHOLD
+                and src not in skipped
+            ):
+                skipped.add(src)
+                _log.warn(
+                    "contratos",
+                    f"{ano_mes} pulando '{src}' — falhou em {falhas_consec[src]} "
+                    f"cidades consecutivas (provável bloqueio permanente)",
+                )
+        # qualquer source que retornou OK reseta o contador dela
+        for src in {s for s, _ in SOURCES} - set(erros):
+            falhas_consec[src] = 0
+
         if total > 50 and i % log_every == 0:
+            elapsed = time.monotonic() - started
+            rate = i / elapsed if elapsed > 0 else 0
+            eta = (total - i) / rate if rate > 0 else 0
             parcial = sum(contratos_por_cidade.values())
             _log.info(
-                "sync",
-                f"{ano_mes} progresso {i}/{total} cidades — {parcial} contratos até agora",
+                "contratos",
+                f"{ano_mes} {i}/{total} cidades — {parcial} contratos — "
+                f"{rate:.1f}/s — ETA {eta/60:.0f}min",
             )
 
     return contratos_por_cidade, erros_agg

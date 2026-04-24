@@ -31,6 +31,10 @@ BASE_URL = "https://api.portaldatransparencia.gov.br"
 DEFAULT_RATE_PER_MINUTE = 400
 
 
+class _RetryableHTTPError(httpx.HTTPStatusError):
+    """Marca status retryáveis (429/5xx). 4xx não é retryável."""
+
+
 class TransparenciaClient:
     """Cliente HTTP para api.portaldatransparencia.gov.br."""
 
@@ -61,7 +65,7 @@ class TransparenciaClient:
         await self._client.aclose()
 
     @retry(
-        retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError)),
+        retry=retry_if_exception_type((httpx.RequestError, _RetryableHTTPError)),
         wait=wait_exponential(multiplier=1, min=1, max=30),
         stop=stop_after_attempt(5),
         reraise=True,
@@ -70,12 +74,12 @@ class TransparenciaClient:
         # bloqueia até ter token (rate limit)
         await asyncio.get_running_loop().run_in_executor(None, self._bucket.acquire)
         resp = await self._client.request(method, path, **kwargs)
+        # Só 429/5xx são retryáveis. 4xx (403/400/404) é resposta final e
+        # não vale gastar 5 tentativas com backoff exponencial nela.
         if resp.status_code == 429 or 500 <= resp.status_code < 600:
-            raise httpx.HTTPStatusError(
+            raise _RetryableHTTPError(
                 f"status={resp.status_code}", request=resp.request, response=resp
             )
-        # 4xx: silencioso aqui — o caller (sync_transferencias) agrega contagem
-        # por source. Diagnóstico detalhado fica em DEBUG (não printa por padrão).
         resp.raise_for_status()
         return resp
 
